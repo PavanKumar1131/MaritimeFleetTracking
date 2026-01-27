@@ -389,4 +389,4 @@ DB_PORT=3306
 JWT_SECRET=your_secure_secret_key
 PORT=5000
 WEATHER_API_KEY=your_openweathermap_key
-```
+`
