@@ -1,0 +1,961 @@
+/* 
+   Main stylesheet for my maritime fleet project
+   i spent a lot of time on this lol
+   last updated: jan 2026
+*/
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* colors and stuff - these are the main theme colors i picked */
+:root {
+  /* dark blue ocean colors */
+  --ocean-dark: #0a1628;
+  --ocean-medium: #0d1f35;
+  --ocean-light: #132d46;
+  --cyan: #00d4ff;
+  --teal: #00f5d4;
+  --cyan-glow: rgba(0, 212, 255, 0.3);
+  
+  /* same colors but different names, easier to remember */
+  --primary: #00d4ff;
+  --secondary: #00f5d4;
+  --dark-bg: #0a1628;
+  --dark-card: #0d1f35;
+  --dark-border: rgba(0, 212, 255, 0.15);
+  --dark-border-hover: rgba(0, 212, 255, 0.4);
+  
+  /* text colors - white and gray shades */
+  --text-primary: #e8f4fc;
+  --text-secondary: #8db4d4;
+  --text-muted: #5a7a9a;
+  
+  /* for status indicators */
+  --success: #00f5d4;
+  --warning: #ffbe0b;
+  --danger: #ff6b6b;
+  --info: #00d4ff;
+  
+  /* sidebar width */
+  --sidebar-width: 240px;
+  
+  /* shadows */
+  --border: rgba(0, 212, 255, 0.15);
+  --shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  --glow: 0 0 20px rgba(0, 212, 255, 0.2);
+}
+
+/* reset default browser styles */
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: 'Inter', sans-serif;
+  background: var(--ocean-dark);
+  color: var(--text-primary);
+  line-height: 1.6;
+}
+
+a { text-decoration: none; color: inherit; }
+
+/* animations i made */
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* smooth slide in from left */
+@keyframes slideInLeft {
+  from { opacity: 0; transform: translateX(-20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* smooth slide in from right */
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(20px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* smooth slide up animation */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* smooth scale in */
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+/* floating animation for icons */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-3px); }
+}
+
+/* glow effect */
+@keyframes glow {
+  0%, 100% { box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3); }
+  50% { box-shadow: 0 4px 20px rgba(0, 212, 255, 0.5); }
+}
+
+/* login page styling */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--ocean-dark) 0%, var(--ocean-medium) 100%);
+}
+
+/* the login box in the center */
+.login-box {
+  background: var(--ocean-medium);
+  padding: 40px;
+  border-radius: 16px;
+  width: 400px;
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.login-header {
+  text-align: center;
+  margin-bottom: 30px;
+}
+
+/* the ship icon at the top of login */
+.login-icon {
+  width: 64px;
+  height: 64px;
+  background: linear-gradient(135deg, var(--cyan), var(--teal));
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 18px;
+  font-size: 28px;
+  animation: float 3s ease-in-out infinite, glow 2s ease-in-out infinite;
+}
+
+.login-icon:hover {
+  transform: scale(1.05);
+}
+
+.login-header h1 {
+  font-size: 22px;
+  margin-bottom: 4px;
+}
+
+.login-header p {
+  color: var(--text-secondary);
+  font-size: 13px;
+}
+
+/* form inputs and labels */
+.form-group { margin-bottom: 16px; }
+.form-group label {
+  display: block;
+  margin-bottom: 6px;
+  font-weight: 600;
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  width: 100%;
+  padding: 12px 14px;
+  background: var(--ocean-dark);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text-primary);
+  font-size: 14px;
+  transition: border-color 0.2s;
+}
+
+/* when you click on the input */
+.form-group input:focus,
+.form-group select:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
+
+.form-group input::placeholder { color: var(--text-muted); }
+
+/* all the different button styles */
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+/* main button with gradient */
+.btn-primary {
+  background: linear-gradient(135deg, var(--cyan), var(--teal));
+  color: var(--ocean-dark);
+  font-weight: 700;
+}
+
+.btn-primary:hover { box-shadow: 0 4px 15px rgba(0, 212, 255, 0.3); }
+
+/* add new item button */
+.btn-add {
+  background: linear-gradient(135deg, var(--cyan), var(--teal));
+  color: var(--ocean-dark);
+  font-weight: 700;
+  padding: 8px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-add:hover { box-shadow: 0 4px 12px rgba(0, 212, 255, 0.3); }
+
+/* save button - green color */
+.btn-save {
+  background: linear-gradient(135deg, var(--teal), #00c4a7);
+  color: var(--ocean-dark);
+  font-weight: 700;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.btn-save:hover { box-shadow: 0 4px 12px rgba(0, 245, 212, 0.3); }
+
+/* cancel button - just outline */
+.btn-cancel {
+  background: transparent;
+  color: var(--text-secondary);
+  font-weight: 600;
+  padding: 8px 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn-cancel:hover { border-color: var(--cyan); color: var(--text-primary); }
+
+.btn-secondary {
+  background: var(--ocean-light);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.btn-secondary:hover { border-color: var(--cyan); }
+
+/* green success button */
+.btn-success {
+  background: linear-gradient(135deg, var(--success), #00c4a7);
+  color: var(--ocean-dark);
+  font-weight: 700;
+}
+
+/* red danger/delete button */
+.btn-danger {
+  background: linear-gradient(135deg, var(--danger), #e55555);
+  color: white;
+  font-weight: 600;
+}
+
+/* small icon buttons */
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: var(--ocean-light);
+  color: var(--text-primary);
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  border: 1px solid var(--border);
+}
+
+.btn-icon:hover { background: var(--cyan); color: var(--ocean-dark); }
+.btn-icon.btn-icon-danger:hover { background: var(--danger); color: white; }
+.btn-icon.btn-icon-edit:hover { background: var(--warning); color: var(--ocean-dark); }
+
+/* buttons on cards */
+.btn-action {
+  flex: 1;
+  padding: 8px 10px;
+  border: none;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  background: var(--ocean-light);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.btn-action:hover { box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3); }
+
+/* different button colors for different actions */
+.btn-action-details { background: rgba(99, 102, 241, 0.15); border-color: rgba(99, 102, 241, 0.3); color: #a5b4fc; }
+.btn-action-details:hover { background: #6366f1; color: white; border-color: transparent; }
+
+.btn-action-edit { background: rgba(255, 190, 11, 0.15); border-color: rgba(255, 190, 11, 0.3); color: #fcd34d; }
+.btn-action-edit:hover { background: var(--warning); color: var(--ocean-dark); border-color: transparent; }
+
+.btn-action-metrics { background: rgba(0, 212, 255, 0.15); border-color: rgba(0, 212, 255, 0.3); color: var(--cyan); }
+.btn-action-metrics:hover { background: var(--cyan); color: var(--ocean-dark); border-color: transparent; }
+
+.btn-action-delete { flex: 0 0 auto; padding: 8px 10px; background: rgba(255, 107, 107, 0.15); border-color: rgba(255, 107, 107, 0.3); color: #fca5a5; }
+.btn-action-delete:hover { background: var(--danger); color: white; border-color: transparent; }
+
+/* helper classes for buttons */
+.btn-sm { padding: 6px 12px; font-size: 12px; }
+.btn-full { width: 100%; }
+a.btn-secondary { text-decoration: none; display: inline-flex; padding: 8px 14px; font-size: 12px; font-weight: 600; }
+.btn-group { display: flex; gap: 6px; }
+.table-actions { display: flex; gap: 4px; justify-content: flex-end; }
+
+
+/* main layout with sidebar */
+.dashboard { display: flex; min-height: 100vh; }
+
+/* the left sidebar navigation */
+.sidebar {
+  width: var(--sidebar-width);
+  background: linear-gradient(180deg, var(--ocean-medium), var(--ocean-dark));
+  position: fixed;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  border-right: 1px solid var(--border);
+  animation: slideInLeft 0.4s ease-out;
+}
+
+.sidebar-header { padding: 20px 16px; border-bottom: 1px solid var(--border); }
+.sidebar-brand { display: flex; align-items: center; gap: 10px; }
+
+/* logo icon with animation */
+.brand-icon {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, var(--cyan), var(--teal));
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  animation: float 3s ease-in-out infinite, glow 2s ease-in-out infinite;
+}
+
+.brand-icon:hover {
+  transform: scale(1.05);
+}
+
+/* brand name and tagline */
+.brand-text h3 { font-size: 14px; font-weight: 700; }
+.brand-text p { font-size: 9px; color: var(--cyan); text-transform: uppercase; letter-spacing: 1.5px; }
+
+/* nav menu area */
+.sidebar-nav { padding: 16px 0; flex: 1; }
+
+/* each nav link */
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 20px;
+  color: var(--text-secondary);
+  transition: all 0.2s;
+  border-left: 3px solid transparent;
+}
+
+.nav-item:hover { background: rgba(0, 212, 255, 0.05); color: var(--text-primary); }
+.nav-item.active { background: rgba(0, 212, 255, 0.1); color: var(--cyan); border-left-color: var(--cyan); }
+.nav-icon { font-size: 16px; width: 20px; text-align: center; }
+
+/* bottom part of sidebar with user stuff */
+.sidebar-footer { padding: 16px; border-top: 1px solid var(--border); }
+.user-info { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+
+/* the circle with initials */
+.user-avatar {
+  width: 36px;
+  height: 36px;
+  background: linear-gradient(135deg, var(--cyan), var(--teal));
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--ocean-dark);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+/* fun little hover effect i added */
+.user-avatar:hover {
+  transform: scale(1.1) rotate(5deg);
+  box-shadow: 0 0 15px var(--cyan), 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+.user-details h4 { font-size: 13px; }
+.user-details p { font-size: 10px; color: var(--text-secondary); }
+
+/* logout button - red so users know its important */
+.btn-logout {
+  width: 100%;
+  padding: 10px;
+  background: rgba(255, 107, 107, 0.1);
+  border: 1px solid rgba(255, 107, 107, 0.3);
+  color: var(--danger);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-weight: 600;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-logout:hover { background: var(--danger); color: white; border-color: transparent; }
+
+/* the right side where content goes */
+.main-content { 
+  margin-left: var(--sidebar-width); 
+  flex: 1; 
+  min-height: 100vh; 
+  background: var(--ocean-dark); 
+  animation: fadeIn 0.5s ease-out;
+}
+
+/* header at top of each page */
+.content-header {
+  background: var(--ocean-medium);
+  padding: 16px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  animation: slideUp 0.4s ease-out;
+}
+
+.content-header h1 { font-size: 20px; }
+.content-header p { color: var(--text-secondary); font-size: 13px; }
+.header-actions { display: flex; gap: 8px; align-items: center; }
+.content-body { padding: 20px; animation: slideUp 0.5s ease-out 0.1s backwards; }
+
+/* stat cards at top of dashboard */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+/* each stat card box */
+.stat-card {
+  background: linear-gradient(135deg, var(--ocean-medium), var(--ocean-light));
+  padding: 16px;
+  animation: scaleIn 0.4s ease-out backwards;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: box-shadow 0.2s;
+}
+
+.stat-card:hover { box-shadow: var(--glow); }
+
+/* icon on left side of stat */
+.stat-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  animation: float 3s ease-in-out infinite;
+}
+
+/* different colors for different stats */
+.stat-icon.blue { background: rgba(0, 212, 255, 0.15); }
+.stat-icon.teal { background: rgba(0, 245, 212, 0.15); animation-delay: 0.5s; }
+.stat-icon.yellow { background: rgba(255, 190, 11, 0.15); animation-delay: 1s; }
+.stat-icon.red { background: rgba(255, 107, 107, 0.15); animation-delay: 1.5s; }
+
+/* stagger animation for stat cards */
+.stat-card:nth-child(1) { animation-delay: 0.1s; }
+.stat-card:nth-child(2) { animation-delay: 0.2s; }
+.stat-card:nth-child(3) { animation-delay: 0.3s; }
+.stat-card:nth-child(4) { animation-delay: 0.4s; }
+
+.stat-details p { font-size: 12px; color: var(--text-secondary); margin-bottom: 2px; }
+.stat-details h3 { font-size: 22px; font-weight: 700; }
+
+/* tables section - used on multiple pages */
+.table-container {
+  background: var(--ocean-medium);
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  animation: slideUp 0.5s ease-out 0.2s backwards;
+  margin-bottom: 20px;
+}
+
+.table-header {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.2);
+}
+
+.table-header h3 { font-size: 15px; }
+
+/* the actual table styling */
+table { width: 100%; border-collapse: collapse; }
+th {
+  text-align: left;
+  padding: 12px 20px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  background: rgba(0, 0, 0, 0.2);
+}
+td { padding: 12px 20px; border-top: 1px solid var(--border); font-size: 13px; }
+tr:hover td { background: rgba(0, 212, 255, 0.03); }
+
+/* status badges - these show up everywhere lol */
+.badge { display: inline-block; padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; }
+.badge-success { background: rgba(0, 245, 212, 0.15); color: var(--success); }
+.badge-warning { background: rgba(255, 190, 11, 0.15); color: var(--warning); }
+.badge-danger { background: rgba(255, 107, 107, 0.15); color: var(--danger); }
+.badge-info { background: rgba(0, 212, 255, 0.15); color: var(--info); }
+.badge-default { background: rgba(100, 116, 139, 0.15); color: var(--text-secondary); }
+
+/* vessel type badges */
+.badge-cargo { background: rgba(0, 212, 255, 0.1); color: var(--cyan); }
+.badge-tanker { background: rgba(255, 190, 11, 0.1); color: var(--warning); }
+.badge-naval { background: rgba(0, 245, 212, 0.1); color: var(--teal); }
+.badge-submarine { background: rgba(141, 180, 212, 0.15); color: var(--text-secondary); }
+
+/* map on fleet page */
+#map { height: 500px; border-radius: 12px; border: 1px solid var(--border); }
+.map-legend {
+  background: var(--ocean-medium);
+  padding: 12px 20px;
+  border-radius: 10px;
+  margin-top: 12px;
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  border: 1px solid var(--border);
+}
+
+/* popup windows (modals) */
+.modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(10, 22, 40, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal.active { display: flex; }
+
+/* the white box in middle of modal */
+.modal-content {
+  background: var(--ocean-medium);
+  border-radius: 14px;
+  width: 100%;
+  max-width: 480px;
+  max-height: 85vh;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5);
+}
+
+.modal-header {
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 { font-size: 17px; }
+
+/* x button to close modal */
+.modal-close {
+  width: 32px;
+  height: 32px;
+  border: none;
+  background: var(--ocean-light);
+  border-radius: 8px;
+  font-size: 18px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.modal-close:hover { background: var(--danger); color: white; }
+.modal-body { padding: 20px; }
+.modal-footer { padding: 16px 20px; display: flex; gap: 10px; justify-content: flex-end; }
+
+/* alert notifications list */
+.alert-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  background: var(--ocean-light);
+  border-radius: 10px;
+  margin-bottom: 10px;
+  border-left: 3px solid var(--text-muted);
+  transition: background 0.2s;
+}
+
+.alert-item:hover { background: rgba(0, 212, 255, 0.05); }
+
+/* colors for different alert levels */
+.alert-item.alert-critical { border-left-color: var(--danger); }
+.alert-item.alert-high { border-left-color: var(--warning); }
+.alert-item.alert-medium { border-left-color: var(--cyan); }
+
+.alert-icon { font-size: 20px; }
+.alert-content strong { display: block; margin-bottom: 2px; font-size: 13px; }
+.alert-content p { font-size: 12px; color: var(--text-secondary); }
+
+/* vessel cards on fleet page - took forever to get these right */
+.vessel-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 16px;
+}
+
+/* individual vessel card */
+.vessel-card {
+  background: linear-gradient(145deg, var(--ocean-medium), var(--ocean-light));
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  overflow: hidden;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.vessel-card:hover {
+  border-color: var(--cyan);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+
+/* top section of card */
+.vessel-card-header {
+  padding: 14px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(0, 212, 255, 0.02);
+}
+
+.vessel-card-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.vessel-card-info {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* ship icon on card */
+.vessel-card-icon {
+  width: 38px;
+  height: 38px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  animation: float 3s ease-in-out infinite;
+}
+
+/* colors for different ship types */
+.vessel-card-icon.cargo { background: linear-gradient(135deg, #0ea5e9, #0284c7); }
+.vessel-card-icon.naval { background: linear-gradient(135deg, #10b981, #059669); animation-delay: 0.5s; }
+.vessel-card-icon.tanker { background: linear-gradient(135deg, #f59e0b, #d97706); animation-delay: 1s; }
+.vessel-card-icon.submarine { background: linear-gradient(135deg, #8b5cf6, #7c3aed); animation-delay: 1.5s; }
+.vessel-card-icon.passenger { background: linear-gradient(135deg, #ec4899, #db2777); animation-delay: 2s; }
+
+.vessel-card-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+/* type label under ship name */
+.vessel-card-type {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.vessel-card-type.cargo { color: #38bdf8; }
+.vessel-card-type.naval { color: #34d399; }
+.vessel-card-type.tanker { color: #fbbf24; }
+.vessel-card-type.submarine { color: #a78bfa; }
+.vessel-card-type.passenger { color: #f472b6; }
+
+/* middle part of vessel card */
+.vessel-card-body {
+  padding: 14px;
+}
+
+/* the 2 column stats grid */
+.vessel-card-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.vessel-stat {
+  background: rgba(0, 0, 0, 0.2);
+  padding: 8px 10px;
+  border-radius: 6px;
+}
+
+.vessel-stat-label {
+  font-size: 9px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.vessel-stat-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.vessel-stat-value.speed { color: var(--cyan); }
+.vessel-stat-value.heading { color: var(--teal); }
+
+/* progress bar section */
+.vessel-card-meters {
+  margin-bottom: 12px;
+}
+
+.vessel-meter {
+  margin-bottom: 10px;
+}
+
+.vessel-meter:last-child {
+  margin-bottom: 0;
+}
+
+.vessel-meter-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 4px;
+}
+
+.vessel-meter-label {
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+/* changes color based on percentage */
+.vessel-meter-value {
+  font-weight: 600;
+}
+
+.vessel-meter-value.good { color: #10b981; }
+.vessel-meter-value.warning { color: #f59e0b; }
+.vessel-meter-value.critical { color: #ef4444; }
+
+/* the bar background */
+.vessel-meter-bar {
+  height: 6px;
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+/* the filled part of bar */
+.vessel-meter-fill {
+  height: 100%;
+  border-radius: 3px;
+}
+
+.vessel-meter-fill.good { background: #10b981; }
+.vessel-meter-fill.warning { background: #f59e0b; }
+.vessel-meter-fill.critical { background: #ef4444; }
+
+/* buttons at bottom of card */
+.vessel-card-actions {
+  display: flex;
+  gap: 6px;
+}
+
+/* weather info row */
+.vessel-card-weather {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 10px;
+}
+
+.vessel-card-weather-icon {
+  font-size: 14px;
+}
+
+/* coordinates display */
+.vessel-card-position {
+  font-size: 10px;
+  color: var(--text-muted);
+  padding: 6px 10px;
+  background: rgba(0, 0, 0, 0.15);
+  border-radius: 4px;
+  margin-bottom: 12px;
+  font-family: monospace;
+}
+
+/* user role badges - different colors for each role */
+.role-badge {
+  padding: 5px 12px;
+  border-radius: 12px;
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid transparent;
+}
+
+/* little dot that pulses */
+.role-badge::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+
+/* admin is green cuz they have most power */
+.role-admin {
+  background: rgba(0, 245, 212, 0.15);
+  color: #34d399;
+  border-color: rgba(0, 245, 212, 0.3);
+}
+
+.role-admin::before { background: var(--teal); }
+
+/* operator is blue */
+.role-operator {
+  background: rgba(0, 212, 255, 0.15);
+  color: var(--cyan);
+  border-color: rgba(0, 212, 255, 0.3);
+}
+
+.role-operator::before { background: var(--cyan); }
+
+/* viewer is red cuz limited access */
+.role-viewer {
+  background: rgba(255, 107, 107, 0.15);
+  color: #fca5a5;
+  border-color: rgba(255, 107, 107, 0.3);
+}
+
+.role-viewer::before { background: var(--danger); }
+
+/* generic progress bars */
+.progress-bar {
+  height: 8px;
+  background: var(--ocean-dark);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: 10px;
+  background: linear-gradient(90deg, var(--cyan), var(--teal));
+  transition: width 0.5s ease;
+}
+
+/* helper classes */
+.hidden { display: none !important; }
+.text-center { text-align: center; }
+.mt-20 { margin-top: 20px; }
+.mb-20 { margin-bottom: 20px; }
+
+/* loading spinner animation */
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 3px solid var(--ocean-light);
+  border-top-color: var(--cyan);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 24px auto;
+}
+
+/* mobile responsiveness - just hiding sidebar for now */
+@media (max-width: 768px) {
+  .sidebar { display: none; }
+  .main-content { margin-left: 0; }
+  .stats-grid { grid-template-columns: 1fr; }
+  .content-header { flex-direction: column; gap: 15px; text-align: center; }
+}

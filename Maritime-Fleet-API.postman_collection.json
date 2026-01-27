@@ -1,0 +1,425 @@
+{
+  "info": {
+    "name": "Maritime Fleet Tracking API",
+    "description": "RESTful API for Maritime Fleet Tracking System - Ship and Submarine Management",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:5000/api"
+    },
+    {
+      "key": "token",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "🔐 Authentication",
+      "description": "User registration, login, and profile management",
+      "item": [
+        {
+          "name": "Register User",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"captain_jack\",\n  \"email\": \"jack@maritime.com\",\n  \"password\": \"secure123\",\n  \"role\": \"operator\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/register"
+          }
+        },
+        {
+          "name": "Login User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "var jsonData = pm.response.json();",
+                  "if (jsonData.token) {",
+                  "    pm.collectionVariables.set('token', jsonData.token);",
+                  "}"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@maritime.com\",\n  \"password\": \"admin123\"\n}"
+            },
+            "url": "{{baseUrl}}/auth/login"
+          }
+        },
+        {
+          "name": "Get User Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": "{{baseUrl}}/auth/profile"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🚢 Vessels",
+      "description": "Fleet vessel management and tracking",
+      "item": [
+        {
+          "name": "Get All Vessels",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": "{{baseUrl}}/vessels"
+          }
+        },
+        {
+          "name": "Create New Vessel",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Atlantic Explorer\",\n  \"type\": \"cargo\",\n  \"imo_number\": \"IMO9876543\",\n  \"mmsi\": \"123456789\",\n  \"flag_country\": \"Norway\",\n  \"length\": 285.5,\n  \"width\": 40.2,\n  \"max_speed\": 22.5,\n  \"fuel_capacity\": 8500,\n  \"cargo_capacity\": 75000\n}"
+            },
+            "url": "{{baseUrl}}/vessels"
+          }
+        },
+        {
+          "name": "Get Vessel by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": "{{baseUrl}}/vessels/1"
+          }
+        },
+        {
+          "name": "Update Vessel Location",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"latitude\": 51.5074,\n  \"longitude\": -0.1278,\n  \"speed\": 18.5,\n  \"heading\": 270,\n  \"status\": \"sailing\"\n}"
+            },
+            "url": "{{baseUrl}}/vessels/1/location"
+          }
+        },
+        {
+          "name": "Delete Vessel",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": "{{baseUrl}}/vessels/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🗺️ Routes",
+      "description": "Maritime route planning and navigation",
+      "item": [
+        {
+          "name": "Get All Routes",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": "{{baseUrl}}/routes"
+          }
+        },
+        {
+          "name": "Create Route",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Trans-Atlantic Route\",\n  \"vessel_id\": 1,\n  \"start_port\": \"Southampton, UK\",\n  \"end_port\": \"New York, USA\",\n  \"waypoints\": [\n    {\"latitude\": 50.9097, \"longitude\": -1.4044, \"name\": \"Southampton\"},\n    {\"latitude\": 49.6427, \"longitude\": -6.2635, \"name\": \"Open Atlantic\"},\n    {\"latitude\": 40.6892, \"longitude\": -74.0445, \"name\": \"New York Harbor\"}\n  ],\n  \"estimated_duration\": 168,\n  \"distance\": 5500\n}"
+            },
+            "url": "{{baseUrl}}/routes"
+          }
+        },
+        {
+          "name": "Get Route by ID",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": "{{baseUrl}}/routes/1"
+          }
+        },
+        {
+          "name": "Update Route Status",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"in_progress\",\n  \"current_waypoint\": 2\n}"
+            },
+            "url": "{{baseUrl}}/routes/1"
+          }
+        },
+        {
+          "name": "Delete Route",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": "{{baseUrl}}/routes/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "🚨 Alerts",
+      "description": "Fleet alert and notification system",
+      "item": [
+        {
+          "name": "Get All Alerts",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": "{{baseUrl}}/alerts"
+          }
+        },
+        {
+          "name": "Create Alert",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vessel_id\": 1,\n  \"type\": \"engine_warning\",\n  \"severity\": \"high\",\n  \"message\": \"Engine temperature exceeding normal range\",\n  \"latitude\": 51.5074,\n  \"longitude\": -0.1278\n}"
+            },
+            "url": "{{baseUrl}}/alerts"
+          }
+        },
+        {
+          "name": "Mark Alert Resolved",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"resolved\",\n  \"resolution_notes\": \"Engine coolant refilled, temperature normalized\"\n}"
+            },
+            "url": "{{baseUrl}}/alerts/1"
+          }
+        },
+        {
+          "name": "Delete Alert",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": "{{baseUrl}}/alerts/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📍 Live Tracking",
+      "description": "Real-time vessel and submarine tracking",
+      "item": [
+        {
+          "name": "Get Live Tracking Data",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": "{{baseUrl}}/tracking/live"
+          }
+        },
+        {
+          "name": "Get All Submarines",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": "{{baseUrl}}/tracking/submarines"
+          }
+        },
+        {
+          "name": "Update Submarine Depth",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Content-Type", "value": "application/json"},
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vessel_id\": 1,\n  \"depth\": 150.5,\n  \"pressure\": 16.2,\n  \"water_temperature\": 8.3\n}"
+            },
+            "url": "{{baseUrl}}/tracking/submarine/depth"
+          }
+        },
+        {
+          "name": "Get Vessel Location History",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/tracking/history/1?hours=24",
+              "host": ["{{baseUrl}}"],
+              "path": ["tracking", "history", "1"],
+              "query": [
+                {"key": "hours", "value": "24"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🌤️ Weather",
+      "description": "Weather data for maritime operations",
+      "item": [
+        {
+          "name": "Get Weather by Coordinates",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/weather?lat=51.5074&lon=-0.1278",
+              "host": ["{{baseUrl}}"],
+              "path": ["weather"],
+              "query": [
+                {"key": "lat", "value": "51.5074"},
+                {"key": "lon", "value": "-0.1278"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "Get Weather for Vessel",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": "{{baseUrl}}/weather/vessel/1"
+          }
+        }
+      ]
+    },
+    {
+      "name": "📁 Data Import/Export",
+      "description": "Bulk data operations via file upload",
+      "item": [
+        {
+          "name": "Import Vessels (CSV/JSON)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "file",
+                  "type": "file",
+                  "description": "CSV or JSON file with vessel data"
+                }
+              ]
+            },
+            "url": "{{baseUrl}}/upload/vessels"
+          }
+        },
+        {
+          "name": "Export Vessels",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/upload/export/vessels?format=json",
+              "host": ["{{baseUrl}}"],
+              "path": ["upload", "export", "vessels"],
+              "query": [
+                {"key": "format", "value": "json"}
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📊 Dashboard",
+      "description": "Analytics and fleet statistics",
+      "item": [
+        {
+          "name": "Get Dashboard Stats",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": "{{baseUrl}}/dashboard/stats"
+          }
+        },
+        {
+          "name": "Get Fleet Analytics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{token}}"}
+            ],
+            "url": "{{baseUrl}}/dashboard/analytics"
+          }
+        }
+      ]
+    }
+  ]
+}

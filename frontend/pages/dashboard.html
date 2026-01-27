@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Maritime Fleet Control</title>
+  <!-- main stylesheet -->
+  <link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+  <div class="dashboard">
+    <!-- sidebar navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="brand-icon">⚓</div>
+          <div class="brand-text">
+            <h3>MARITIME</h3>
+            <p>FLEET CONTROL</p>
+          </div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-item active"><span class="nav-icon">📊</span><span>Dashboard</span></a>
+        <a href="fleet-map.html" class="nav-item"><span class="nav-icon">🗺️</span><span>Fleet Map</span></a>
+        <a href="vessels.html" class="nav-item"><span class="nav-icon">🚢</span><span>Vessels</span></a>
+        <a href="routes.html" class="nav-item"><span class="nav-icon">🧭</span><span>Routes</span></a>
+        <a href="analytics.html" class="nav-item"><span class="nav-icon">📈</span><span>Analytics</span></a>
+        <a href="alerts.html" class="nav-item"><span class="nav-icon">🔔</span><span>Alerts</span></a>
+        <a href="admin-panel.html" class="nav-item" id="adminLink" style="display:none;"><span class="nav-icon">👥</span><span>Admin Panel</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">CA</div>
+          <div class="user-details">
+            <h4 id="userName">User</h4>
+            <p id="userRole">Role</p>
+          </div>
+        </div>
+        <button class="btn-logout" onclick="logout()">🚪 Logout</button>
+      </div>
+    </aside>
+
+    <!-- main content -->
+    <main class="main-content">
+      <div class="content-header">
+        <div>
+          <h1>Command Center</h1>
+          <p>Welcome back, <span id="welcomeName">Captain</span></p>
+        </div>
+      </div>
+
+      <div class="content-body">
+        <!-- stats cards at top -->
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-icon blue">🚢</div>
+            <div class="stat-details">
+              <p>Total Vessels</p>
+              <h3 id="totalVessels">0</h3>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon teal">🧭</div>
+            <div class="stat-details">
+              <p>Active Routes</p>
+              <h3 id="activeRoutes">0</h3>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon yellow">⚠️</div>
+            <div class="stat-details">
+              <p>Active Alerts</p>
+              <h3 id="activeAlerts">0</h3>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">⚙️</div>
+            <div class="stat-details">
+              <p>Avg Engine Health</p>
+              <h3><span id="avgEngineHealth">0</span>%</h3>
+            </div>
+          </div>
+        </div>
+
+        <!-- fleet status table -->
+        <div class="table-container" style="margin-top: 24px;">
+          <div class="table-header">
+            <h3>Fleet Status</h3>
+            <a href="vessels.html" class="btn-secondary">View All →</a>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Vessel</th>
+                  <th>Type</th>
+                  <th>Speed</th>
+                  <th>Engine</th>
+                  <th>Fuel</th>
+                  <th>Weather</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="vesselTable"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- alerts section -->
+        <div class="table-container" style="margin-top: 24px;">
+          <div class="table-header">
+            <h3>🔔 Active Alerts</h3>
+            <a href="alerts.html" class="btn-secondary">View All →</a>
+          </div>
+          <div id="alertsList" style="padding: 16px;"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // api url
+    const API_URL = 'http://localhost:5000/api';
+    
+    // check if user is logged in
+    function checkAuth() {
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+      if (!token || !userStr) { window.location.href = 'login.html'; return null; }
+      try { return JSON.parse(userStr); } catch (e) { window.location.href = 'login.html'; return null; }
+    }
+    
+    // logout and clear storage
+    function logout() {
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      window.location.href = 'login.html';
+    }
+    
+    // helper to fetch with auth header
+    async function fetchAPI(url) {
+      const token = localStorage.getItem('token');
+      const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (res.status === 401) { logout(); return null; }
+      return res.ok ? res.json() : null;
+    }
+    
+    // load all dashboard data
+    async function loadDashboard() {
+      try {
+        // fetch everything at once
+        const [vessels, stats, routes, routeStats, alerts] = await Promise.all([
+          fetchAPI(`${API_URL}/vessels`),
+          fetchAPI(`${API_URL}/vessels/stats`),
+          fetchAPI(`${API_URL}/routes`),
+          fetchAPI(`${API_URL}/routes/stats`),
+          fetchAPI(`${API_URL}/alerts/active`)
+        ]);
+        
+        // update stats cards
+        document.getElementById('totalVessels').textContent = stats?.total_vessels || 0;
+        document.getElementById('activeRoutes').textContent = routeStats?.active_routes || 0;
+        document.getElementById('activeAlerts').textContent = alerts?.length || 0;
+        document.getElementById('avgEngineHealth').textContent = Math.round(stats?.avg_engine_health || 0);
+        
+        // render vessel table
+        const tbody = document.getElementById('vesselTable');
+        if (vessels && vessels.length > 0) {
+          // only show first 8
+          tbody.innerHTML = vessels.slice(0, 8).map(v => `
+            <tr>
+              <td><strong>${v.name}</strong></td>
+              <td><span class="badge badge-${v.type.toLowerCase()}">${v.type}</span></td>
+              <td>${v.speed || 0} kn</td>
+              <td>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: ${v.engine_health}%; background: ${v.engine_health >= 80 ? '#10b981' : v.engine_health >= 50 ? '#f59e0b' : '#ef4444'};"></div>
+                </div>
+                <span class="progress-text">${v.engine_health}%</span>
+              </td>
+              <td>
+                <div class="progress-bar">
+                  <div class="progress-fill" style="width: ${v.fuel_level || 50}%; background: ${(v.fuel_level || 50) >= 50 ? '#10b981' : (v.fuel_level || 50) >= 20 ? '#f59e0b' : '#ef4444'};"></div>
+                </div>
+                <span class="progress-text">${v.fuel_level || 50}%</span>
+              </td>
+              <td>${v.weather_status}</td>
+              <td><span class="badge ${v.status === 'Active' ? 'badge-success' : 'badge-warning'}">${v.status}</span></td>
+            </tr>
+          `).join('');
+        } else {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:#64748b;">No vessels found</td></tr>';
+        }
+        
+        // render alerts
+        const alertsDiv = document.getElementById('alertsList');
+        if (alerts && alerts.length > 0) {
+          // only show first 5
+          alertsDiv.innerHTML = alerts.slice(0, 5).map(a => `
+            <div class="alert-item alert-${a.severity}">
+              <div class="alert-icon">${a.severity === 'critical' ? '🚨' : a.severity === 'high' ? '⚠️' : 'ℹ️'}</div>
+              <div class="alert-content">
+                <strong>${a.vessel_name || 'System'}</strong>
+                <p>${a.message}</p>
+              </div>
+              <span class="badge badge-${a.severity}">${a.severity.toUpperCase()}</span>
+            </div>
+          `).join('');
+        } else {
+          alertsDiv.innerHTML = '<p style="text-align:center;color:#64748b;">No active alerts</p>';
+        }
+      } catch (error) {
+        console.error('Error loading dashboard:', error);
+      }
+    }
+    
+    // runs when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = checkAuth();
+      if (!user) return;
+      
+      // set user info in sidebar
+      document.getElementById('userName').textContent = user.name;
+      document.getElementById('userRole').textContent = user.role.toUpperCase();
+      document.getElementById('welcomeName').textContent = user.name;
+      document.getElementById('userAvatar').textContent = user.name.substring(0, 2).toUpperCase();
+      
+      // show admin link if admin
+      if (user.role === 'admin') {
+        document.getElementById('adminLink').style.display = 'flex';
+      }
+      
+      loadDashboard();
+    });
+    
+    // reload when vessels change on other page
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'vesselUpdate') {
+        loadDashboard();
+      }
+    });
+  </script>
+</body>
+</html>

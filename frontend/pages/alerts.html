@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alerts - Maritime Fleet Control</title>
+  <!-- main css -->
+  <link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+  <div class="dashboard">
+    <!-- sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="brand-icon">⚓</div>
+          <div class="brand-text"><h3>MARITIME</h3><p>FLEET CONTROL</p></div>
+        </div>
+      </div>
+      <!-- nav links -->
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span><span>Dashboard</span></a>
+        <a href="fleet-map.html" class="nav-item"><span class="nav-icon">🗺️</span><span>Fleet Map</span></a>
+        <a href="vessels.html" class="nav-item"><span class="nav-icon">🚢</span><span>Vessels</span></a>
+        <a href="routes.html" class="nav-item"><span class="nav-icon">🧭</span><span>Routes</span></a>
+        <a href="analytics.html" class="nav-item"><span class="nav-icon">📈</span><span>Analytics</span></a>
+        <a href="alerts.html" class="nav-item active"><span class="nav-icon">🔔</span><span>Alerts</span></a>
+        <!-- admin only -->
+        <a href="admin-panel.html" class="nav-item" id="adminLink" style="display:none;"><span class="nav-icon">👥</span><span>Admin Panel</span></a>
+      </nav>
+      <!-- user stuff at bottom -->
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">CA</div>
+          <div class="user-details"><h4 id="userName">User</h4><p id="userRole">Role</p></div>
+        </div>
+        <button class="btn-logout" onclick="logout()">🚪 Logout</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <!-- header with filter and add button -->
+      <div class="content-header">
+        <div>
+          <h1>🔔 Alert Management</h1>
+          <p><span id="alertCount">0</span> total alerts</p>
+        </div>
+        <div class="header-actions">
+          <!-- filter dropdown -->
+          <select id="filterStatus" onchange="loadAlerts()" style="padding:8px 12px;border-radius:6px;background:var(--dark-card);border:1px solid var(--dark-border);color:white;">
+            <option value="all">All Alerts</option>
+            <option value="active">Active Only</option>
+            <option value="resolved">Resolved Only</option>
+          </select>
+          <button class="btn-add" onclick="openAddModal()">➕ Create Alert</button>
+        </div>
+      </div>
+
+      <div class="content-body">
+        <!-- stats cards for alert counts -->
+        <div class="stats-grid" style="margin-bottom:24px;">
+          <div class="stat-card">
+            <div class="stat-icon red">🔴</div>
+            <div class="stat-details"><p>Critical</p><h3 id="criticalCount">0</h3></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon yellow">🟠</div>
+            <div class="stat-details"><p>Warning</p><h3 id="warningCount">0</h3></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon blue">🔵</div>
+            <div class="stat-details"><p>Info</p><h3 id="infoCount">0</h3></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon teal">✅</div>
+            <div class="stat-details"><p>Resolved</p><h3 id="resolvedCount">0</h3></div>
+          </div>
+        </div>
+
+        <!-- the alerts list -->
+        <div class="table-container">
+          <div class="table-header"><h3>🔔 All Alerts</h3></div>
+          <div id="alertsList"></div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- modal for creating alerts -->
+  <div id="alertModal" class="modal" style="display:none;">
+    <div class="modal-overlay" onclick="closeModal()"></div>
+    <div class="modal-content" style="width:500px;">
+      <div class="modal-header">
+        <h2>Create New Alert</h2>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <form id="alertForm" onsubmit="createAlert(event)">
+        <div class="modal-body">
+          <!-- alert type dropdown -->
+          <div class="form-group">
+            <label>Alert Type *</label>
+            <select id="alertType" required>
+              <option value="engine_failure">Engine Failure</option>
+              <option value="low_fuel">Low Fuel</option>
+              <option value="weather_warning">Weather Warning</option>
+              <option value="route_deviation">Route Deviation</option>
+              <option value="collision_risk">Collision Risk</option>
+              <option value="maintenance_due">Maintenance Due</option>
+              <option value="communication_lost">Communication Lost</option>
+            </select>
+          </div>
+          <!-- severity -->
+          <div class="form-group">
+            <label>Severity *</label>
+            <select id="alertSeverity" required>
+              <option value="info">Info</option>
+              <option value="warning">Warning</option>
+              <option value="critical">Critical</option>
+            </select>
+          </div>
+          <!-- vessel - optional -->
+          <div class="form-group">
+            <label>Vessel (Optional)</label>
+            <select id="alertVessel">
+              <option value="">-- No Vessel --</option>
+            </select>
+          </div>
+          <!-- message -->
+          <div class="form-group">
+            <label>Message *</label>
+            <textarea id="alertMessage" rows="3" required placeholder="Describe the alert..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-save">💾 Create Alert</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // api url
+    const API_URL = 'http://localhost:5000/api';
+    // store alerts and vessels
+    let alerts = [], vessels = [];
+    
+    // check if logged in
+    function checkAuth() {
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+      if (!token || !userStr) { window.location.href = 'login.html'; return null; }
+      try { return JSON.parse(userStr); } catch (e) { window.location.href = 'login.html'; return null; }
+    }
+    
+    function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+    
+    // fetch with auth
+    async function fetchAPI(url, options = {}) {
+      const token = localStorage.getItem('token');
+      const config = {
+        ...options,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, ...options.headers }
+      };
+      const res = await fetch(url, config);
+      if (res.status === 401) { logout(); return null; }
+      return res.json();
+    }
+    
+    // get icon based on severity
+    function getSeverityIcon(severity) {
+      return { critical: '🔴', warning: '🟠', info: '🔵' }[severity] || '⚪';
+    }
+    
+    // get css class for severity badge
+    function getSeverityClass(severity) {
+      return { critical: 'badge-danger', warning: 'badge-warning', info: 'badge-info' }[severity] || '';
+    }
+    
+    // icon for different alert types
+    function getTypeIcon(type) {
+      const icons = {
+        engine_failure: '⚙️',
+        low_fuel: '⛽',
+        weather_warning: '🌧️',
+        route_deviation: '🧭',
+        collision_risk: '⚠️',
+        maintenance_due: '🔧',
+        communication_lost: '📡'
+      };
+      return icons[type] || '🔔';
+    }
+    
+    // format time as relative (like "5 min ago")
+    function formatTime(dateStr) {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diff = Math.floor((now - date) / 1000);
+      
+      // less than a minute
+      if (diff < 60) return 'Just now';
+      // less than an hour
+      if (diff < 3600) return `${Math.floor(diff/60)} min ago`;
+      // less than a day
+      if (diff < 86400) return `${Math.floor(diff/3600)} hours ago`;
+      // otherwise show date
+      return date.toLocaleDateString();
+    }
+    
+    // main function to load alerts
+    async function loadAlerts() {
+      const filter = document.getElementById('filterStatus').value;
+      
+      // get alerts and vessels together
+      [alerts, vessels] = await Promise.all([
+        fetchAPI(`${API_URL}/alerts`),
+        fetchAPI(`${API_URL}/vessels`)
+      ]);
+      
+      alerts = alerts || [];
+      vessels = vessels || [];
+      
+      // filter based on dropdown
+      let filtered = alerts;
+      if (filter === 'active') filtered = alerts.filter(a => a.status === 'active');
+      if (filter === 'resolved') filtered = alerts.filter(a => a.status === 'resolved');
+      
+      // update the count displays
+      document.getElementById('alertCount').textContent = alerts.length;
+      document.getElementById('criticalCount').textContent = alerts.filter(a => a.severity === 'critical' && a.status === 'active').length;
+      document.getElementById('warningCount').textContent = alerts.filter(a => a.severity === 'warning' && a.status === 'active').length;
+      document.getElementById('infoCount').textContent = alerts.filter(a => a.severity === 'info' && a.status === 'active').length;
+      document.getElementById('resolvedCount').textContent = alerts.filter(a => a.status === 'resolved').length;
+      
+      // render the list
+      const listDiv = document.getElementById('alertsList');
+      
+      // empty state
+      if (filtered.length === 0) {
+        listDiv.innerHTML = '<div style="padding:60px;text-align:center;"><p style="font-size:48px;margin-bottom:16px;">✅</p><h3>No alerts found</h3><p style="color:#64748b;">All systems operating normally</p></div>';
+        return;
+      }
+      
+      // sort - active first, then by severity, then by date
+      filtered.sort((a, b) => {
+        if (a.status !== b.status) return a.status === 'active' ? -1 : 1;
+        const sevOrder = { critical: 0, warning: 1, info: 2 };
+        if (sevOrder[a.severity] !== sevOrder[b.severity]) return sevOrder[a.severity] - sevOrder[b.severity];
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+      
+      // build html for each alert
+      listDiv.innerHTML = filtered.map(alert => {
+        const vessel = vessels.find(v => v.id === alert.vessel_id);
+        const isResolved = alert.status === 'resolved';
+        
+        return `
+          <div class="alert-item" style="display:flex;align-items:flex-start;gap:16px;padding:16px 20px;border-bottom:1px solid var(--dark-border);${isResolved ? 'opacity:0.6;' : ''}">
+            <div style="font-size:24px;">${getSeverityIcon(alert.severity)}</div>
+            <div style="flex:1;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">
+                <span style="font-size:18px;">${getTypeIcon(alert.alert_type)}</span>
+                <strong style="font-size:14px;">${alert.alert_type.replace(/_/g, ' ').toUpperCase()}</strong>
+                <span class="badge ${getSeverityClass(alert.severity)}" style="font-size:10px;">${alert.severity}</span>
+                ${isResolved ? '<span class="badge badge-success" style="font-size:10px;">RESOLVED</span>' : ''}
+              </div>
+              <p style="color:#e2e8f0;margin-bottom:8px;">${alert.message}</p>
+              <div style="display:flex;gap:16px;font-size:12px;color:#64748b;">
+                ${vessel ? `<span>🚢 ${vessel.name}</span>` : ''}
+                <span>🕐 ${formatTime(alert.created_at)}</span>
+                ${alert.resolved_at ? `<span>✅ Resolved ${formatTime(alert.resolved_at)}</span>` : ''}
+              </div>
+            </div>
+            <div style="display:flex;gap:8px;">
+              ${!isResolved ? `<button class="btn-success" style="padding:8px 16px;" onclick="resolveAlert(${alert.id})">✓ Resolve</button>` : ''}
+              <button class="btn-danger" style="padding:8px 12px;" onclick="deleteAlert(${alert.id})">🗑️</button>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+    
+    // open the modal
+    function openAddModal() {
+      document.getElementById('alertForm').reset();
+      
+      // fill vessel dropdown
+      document.getElementById('alertVessel').innerHTML = '<option value="">-- No Vessel --</option>' +
+        vessels.map(v => `<option value="${v.id}">${v.name}</option>`).join('');
+      
+      document.getElementById('alertModal').style.display = 'flex';
+    }
+    
+    function closeModal() {
+      document.getElementById('alertModal').style.display = 'none';
+    }
+    
+    // create new alert
+    async function createAlert(e) {
+      e.preventDefault();
+      
+      const data = {
+        alert_type: document.getElementById('alertType').value,
+        severity: document.getElementById('alertSeverity').value,
+        vessel_id: document.getElementById('alertVessel').value || null,
+        message: document.getElementById('alertMessage').value
+      };
+      
+      const result = await fetchAPI(`${API_URL}/alerts`, {
+        method: 'POST',
+        body: JSON.stringify(data)
+      });
+      
+      if (result && !result.error) {
+        closeModal();
+        loadAlerts();
+      } else {
+        alert(result?.message || 'Error creating alert');
+      }
+    }
+    
+    // mark alert as resolved
+    async function resolveAlert(id) {
+      const result = await fetchAPI(`${API_URL}/alerts/${id}/resolve`, { method: 'PUT' });
+      if (result && !result.error) {
+        loadAlerts();
+      } else {
+        alert(result?.message || 'Error resolving alert');
+      }
+    }
+    
+    // delete alert
+    async function deleteAlert(id) {
+      if (!confirm('Are you sure you want to delete this alert?')) return;
+      
+      const result = await fetchAPI(`${API_URL}/alerts/${id}`, { method: 'DELETE' });
+      if (result && !result.error) {
+        loadAlerts();
+      } else {
+        alert(result?.message || 'Error deleting alert');
+      }
+    }
+    
+    // when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = checkAuth();
+      if (!user) return;
+      
+      // show user info
+      document.getElementById('userName').textContent = user.name;
+      document.getElementById('userRole').textContent = user.role.toUpperCase();
+      document.getElementById('userAvatar').textContent = user.name.substring(0, 2).toUpperCase();
+      // admin link
+      if (user.role === 'admin') document.getElementById('adminLink').style.display = 'flex';
+      
+      loadAlerts();
+    });
+  </script>
+</body>
+</html>

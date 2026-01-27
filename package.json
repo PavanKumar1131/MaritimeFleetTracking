@@ -1,0 +1,27 @@
+{
+  "name": "maritime-fleet-tracking",
+  "version": "1.0.0",
+  "description": "Maritime Fleet Tracking, Operations Management & Sea-Route Visualization System",
+  "main": "backend/server.js",
+  "scripts": {
+    "start": "cd backend && npm start",
+    "dev": "cd backend && npm run dev",
+    "init-db": "cd backend && npm run init-db",
+    "install-all": "cd backend && npm install"
+  },
+  "keywords": [
+    "maritime",
+    "fleet",
+    "tracking",
+    "vessels",
+    "ships",
+    "submarines",
+    "routes",
+    "navigation"
+  ],
+  "author": "",
+  "license": "ISC",
+  "engines": {
+    "node": ">=16.0.0"
+  }
+}

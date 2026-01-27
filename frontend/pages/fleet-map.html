@@ -1,0 +1,338 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fleet Map - Maritime Fleet Control</title>
+  <!-- main styles -->
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <!-- leaflet for the map -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+<body>
+  <div class="dashboard">
+    <!-- sidebar navigation -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="brand-icon">⚓</div>
+          <div class="brand-text"><h3>MARITIME</h3><p>FLEET CONTROL</p></div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span><span>Dashboard</span></a>
+        <a href="fleet-map.html" class="nav-item active"><span class="nav-icon">🗺️</span><span>Fleet Map</span></a>
+        <a href="vessels.html" class="nav-item"><span class="nav-icon">🚢</span><span>Vessels</span></a>
+        <a href="routes.html" class="nav-item"><span class="nav-icon">🧭</span><span>Routes</span></a>
+        <a href="analytics.html" class="nav-item"><span class="nav-icon">📈</span><span>Analytics</span></a>
+        <a href="alerts.html" class="nav-item"><span class="nav-icon">🔔</span><span>Alerts</span></a>
+        <!-- only show for admins -->
+        <a href="admin-panel.html" class="nav-item" id="adminLink" style="display:none;"><span class="nav-icon">👥</span><span>Admin Panel</span></a>
+      </nav>
+      <!-- user info at bottom -->
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">CA</div>
+          <div class="user-details"><h4 id="userName">User</h4><p id="userRole">Role</p></div>
+        </div>
+        <button class="btn-logout" onclick="logout()">🚪 Logout</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <!-- page header -->
+      <div class="content-header">
+        <div>
+          <h1>🗺️ Live Fleet Map</h1>
+          <p><span id="vesselCount">0</span> vessels tracking • Auto-updates every 30s</p>
+        </div>
+      </div>
+
+      <div class="content-body">
+        <!-- map and fleet list side by side -->
+        <div style="display: grid; grid-template-columns: 1fr 320px; gap: 24px;">
+          <div>
+            <!-- the actual map container -->
+            <div id="map" style="height: 600px; border-radius: 16px; border: 1px solid var(--dark-border); box-shadow: 0 0 40px rgba(0, 212, 255, 0.1);"></div>
+            <!-- legend showing what colors mean -->
+            <div class="map-legend" style="margin-top: 16px; display: flex; gap: 24px; padding: 20px; background: linear-gradient(135deg, var(--ocean-dark), var(--ocean-medium)); border-radius: 12px; border: 1px solid var(--dark-border);">
+              <div style="display:flex;align-items:center;gap:8px;"><span style="width:16px;height:16px;background:linear-gradient(135deg, #00d4ff, #0088cc);border-radius:50%;box-shadow:0 0 10px rgba(0,212,255,0.5);"></span> Cargo</div>
+              <div style="display:flex;align-items:center;gap:8px;"><span style="width:16px;height:16px;background:linear-gradient(135deg, #00f5d4, #00c4a7);border-radius:50%;box-shadow:0 0 10px rgba(0,245,212,0.5);"></span> Naval</div>
+              <div style="display:flex;align-items:center;gap:8px;"><span style="width:16px;height:16px;background:linear-gradient(135deg, #ffbe0b, #e6a200);border-radius:50%;box-shadow:0 0 10px rgba(255,190,11,0.5);"></span> Tanker</div>
+              <div style="display:flex;align-items:center;gap:8px;"><span style="width:16px;height:16px;background:linear-gradient(135deg, #9d4edd, #7b2cbf);border-radius:50%;box-shadow:0 0 10px rgba(157,78,221,0.5);"></span> Submarine</div>
+              <div style="margin-left:auto;display:flex;gap:16px;font-weight:500;">
+                <span style="color:#00f5d4;">● Low Risk</span>
+                <span style="color:#ffbe0b;">● Medium Risk</span>
+                <span style="color:#ff6b6b;">● High Risk</span>
+              </div>
+            </div>
+          </div>
+          <!-- fleet list on the right side -->
+          <div class="table-container" style="max-height: 680px; overflow-y: auto; background: linear-gradient(135deg, var(--ocean-dark), var(--ocean-medium));">
+            <div class="table-header" style="background: rgba(0,0,0,0.2);"><h3>🚢 Fleet List</h3></div>
+            <div id="fleetList"></div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // api url
+    const API_URL = 'http://localhost:5000/api';
+    // store map and markers
+    let map, markers = [], routeLines = [];
+    
+    // check if logged in
+    function checkAuth() {
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+      if (!token || !userStr) { window.location.href = 'login.html'; return null; }
+      try { return JSON.parse(userStr); } catch (e) { window.location.href = 'login.html'; return null; }
+    }
+    
+    function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+    
+    // fetch with auth header
+    async function fetchAPI(url) {
+      try {
+        const token = localStorage.getItem('token');
+        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
+        if (res.status === 401) { logout(); return null; }
+        if (!res.ok) throw new Error('API error');
+        return res.json();
+      } catch (err) {
+        console.error('Fetch error:', err);
+        return null;
+      }
+    }
+    
+    // get color for vessel type
+    function getVesselColor(type) {
+      const colors = { 
+        Cargo: '#00d4ff', 
+        Naval: '#00f5d4', 
+        Tanker: '#ffbe0b', 
+        Submarine: '#9d4edd' 
+      };
+      return colors[type] || '#64748b';
+    }
+    
+    // get color for risk level
+    function getRiskColor(risk) {
+      const colors = { low: '#00f5d4', medium: '#ffbe0b', high: '#ff6b6b' };
+      return colors[risk] || '#64748b';
+    }
+    
+    // set up the map
+    function initMap() {
+      // center on atlantic ocean, zoom level 3
+      map = L.map('map').setView([30, -40], 3);
+      // using dark theme tiles from carto
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap © CARTO'
+      }).addTo(map);
+    }
+    
+    // load all the data onto the map
+    async function loadMapData() {
+      console.log('Loading map data...');
+      
+      try {
+        // get vessels and routes at same time
+        const [vessels, routes] = await Promise.all([
+          fetchAPI(`${API_URL}/vessels`),
+          fetchAPI(`${API_URL}/routes`)
+        ]);
+        
+        console.log('Vessels from API:', vessels);
+        console.log('Routes from API:', routes);
+        
+        // clear old markers and lines first
+        markers.forEach(m => map.removeLayer(m));
+        routeLines.forEach(l => map.removeLayer(l));
+        markers = [];
+        routeLines = [];
+        
+        // count how many vessels we actually show
+        let displayedVesselCount = 0;
+        
+        // draw the route lines first
+        if (routes && routes.length > 0) {
+          routes.forEach(route => {
+            const waypoints = route.waypoints || [];
+            // need at least 2 waypoints to draw a line
+            if (waypoints.length >= 2) {
+              const latlngs = waypoints.map(wp => [wp.lat, wp.lng]);
+              // dashed line for routes
+              const line = L.polyline(latlngs, {
+                color: getRiskColor(route.risk_level),
+                weight: 3,
+                opacity: 0.7,
+                dashArray: '10, 5'
+              }).addTo(map);
+              // popup when you click on route
+              line.bindPopup(`
+                <strong>${route.route_name}</strong><br>
+                Risk: ${route.risk_level}<br>
+                Weather: ${route.weather_severity || 'Clear'}<br>
+                ${route.vessel_name ? 'Vessel: ' + route.vessel_name : 'No vessel assigned'}
+              `);
+              routeLines.push(line);
+            }
+          });
+        }
+        
+        // now add vessel markers
+        if (vessels && vessels.length > 0) {
+          vessels.forEach(v => {
+            const lat = parseFloat(v.latitude);
+            const lng = parseFloat(v.longitude);
+            
+            // make sure coordinates are valid
+            const isValidLat = !isNaN(lat) && lat >= -90 && lat <= 90;
+            const isValidLng = !isNaN(lng) && lng >= -180 && lng <= 180;
+            
+            if (isValidLat && isValidLng) {
+              displayedVesselCount++;
+              const color = getVesselColor(v.type);
+              // custom marker with ship emoji
+              const icon = L.divIcon({
+                className: 'vessel-marker',
+                html: `<div style="
+                  width: 32px;
+                  height: 32px;
+                  background: ${color};
+                  border: 3px solid white;
+                  border-radius: 50%;
+                  box-shadow: 0 2px 10px rgba(0,0,0,0.5), 0 0 15px ${color}50;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
+                  font-size: 16px;
+                ">🚢</div>`,
+                iconSize: [32, 32],
+                iconAnchor: [16, 16]
+              });
+              
+              const marker = L.marker([lat, lng], { icon }).addTo(map);
+              // popup with vessel details
+              marker.bindPopup(`
+                <div style="min-width: 200px; font-family: Inter, sans-serif;">
+                  <strong style="font-size: 16px; color: #0a1628;">${v.name}</strong><br>
+                  <span style="color: ${color}; font-weight: 600;">${v.type}</span>
+                  <hr style="margin: 8px 0; border-color: #e0e0e0;">
+                  <div style="font-size: 13px; line-height: 1.6;">
+                    <strong>Speed:</strong> ${v.speed || 0} knots<br>
+                    <strong>Engine:</strong> ${v.engine_health || 0}%<br>
+                    <strong>Weather:</strong> ${v.weather_status || 'N/A'}<br>
+                    <strong>Status:</strong> <span style="color: ${v.status === 'Active' ? '#10b981' : '#f59e0b'}">${v.status}</span>
+                  </div>
+                </div>
+              `);
+              markers.push(marker);
+            } else {
+              // log invalid coords for debugging
+              console.warn(`Vessel "${v.name}" (ID: ${v.id}) has invalid coordinates: lat=${v.latitude}, lng=${v.longitude}`);
+            }
+          });
+          
+          // zoom map to fit all markers
+          if (markers.length > 0) {
+            const group = L.featureGroup(markers);
+            map.fitBounds(group.getBounds().pad(0.2));
+          }
+        }
+        
+        // update count display
+        document.getElementById('vesselCount').textContent = displayedVesselCount;
+        
+        // update the list on the side
+        updateFleetList(vessels);
+        
+        console.log(`Map loaded: ${displayedVesselCount} vessels displayed (${vessels?.length || 0} total in database)`);
+        
+      } catch (error) {
+        console.error('Error loading map data:', error);
+      }
+    }
+    
+    // update the fleet list panel
+    function updateFleetList(vessels) {
+      const listDiv = document.getElementById('fleetList');
+      
+      if (vessels && vessels.length > 0) {
+        // build html for each vessel
+        listDiv.innerHTML = vessels.map(v => `
+          <div class="fleet-list-item" onclick="focusVessel(${v.latitude}, ${v.longitude})" 
+               style="padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s;"
+               onmouseover="this.style.background='rgba(0,212,255,0.05)'" 
+               onmouseout="this.style.background='transparent'">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span style="
+                width: 14px;
+                height: 14px;
+                background: ${getVesselColor(v.type)};
+                border-radius: 50%;
+                box-shadow: 0 0 8px ${getVesselColor(v.type)}50;
+              "></span>
+              <div style="flex: 1;">
+                <strong style="font-size: 14px; color: var(--text-primary);">${v.name}</strong>
+                <div style="font-size: 12px; color: var(--text-secondary);">
+                  ${v.type} • ${v.speed || 0} kn • Engine: ${v.engine_health}%
+                </div>
+              </div>
+              <span class="badge ${v.status === 'Active' ? 'badge-success' : 'badge-warning'}" style="font-size: 10px;">
+                ${v.status}
+              </span>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        listDiv.innerHTML = '<p style="padding: 30px; text-align: center; color: var(--text-secondary);">No vessels found</p>';
+      }
+    }
+    
+    // zoom to vessel when clicked in list
+    function focusVessel(lat, lng) {
+      if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
+        map.setView([lat, lng], 8);
+      }
+    }
+    
+    // manual refresh
+    function refreshMap() {
+      console.log('Refreshing map...');
+      loadMapData();
+    }
+    
+    // auto refresh every 30 seconds
+    setInterval(refreshMap, 30000);
+    
+    // listen for updates from other pages
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'vesselUpdate' || e.key === 'routeUpdate') {
+        loadMapData();
+      }
+    });
+    
+    // when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      const user = checkAuth();
+      if (!user) return;
+      
+      // show user info
+      document.getElementById('userName').textContent = user.name;
+      document.getElementById('userRole').textContent = user.role.toUpperCase();
+      document.getElementById('userAvatar').textContent = user.name.substring(0, 2).toUpperCase();
+      // admin link only for admins
+      if (user.role === 'admin') document.getElementById('adminLink').style.display = 'flex';
+      
+      // start the map
+      initMap();
+      loadMapData();
+    });
+  </script>
+</body>
+</html>

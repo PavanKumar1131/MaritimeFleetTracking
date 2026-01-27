@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Panel - Maritime Fleet Control</title>
+  <!-- main css -->
+  <link rel="stylesheet" href="../assets/css/main.css">
+</head>
+<body>
+  <div class="dashboard">
+    <!-- sidebar -->
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="brand-icon">⚓</div>
+          <div class="brand-text"><h3>MARITIME</h3><p>FLEET CONTROL</p></div>
+        </div>
+      </div>
+      <!-- nav links -->
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span><span>Dashboard</span></a>
+        <a href="fleet-map.html" class="nav-item"><span class="nav-icon">🗺️</span><span>Fleet Map</span></a>
+        <a href="vessels.html" class="nav-item"><span class="nav-icon">🚢</span><span>Vessels</span></a>
+        <a href="routes.html" class="nav-item"><span class="nav-icon">🧭</span><span>Routes</span></a>
+        <a href="analytics.html" class="nav-item"><span class="nav-icon">📈</span><span>Analytics</span></a>
+        <a href="alerts.html" class="nav-item"><span class="nav-icon">🔔</span><span>Alerts</span></a>
+        <a href="admin-panel.html" class="nav-item active"><span class="nav-icon">👥</span><span>Admin Panel</span></a>
+      </nav>
+      <!-- user info -->
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">CA</div>
+          <div class="user-details"><h4 id="userName">User</h4><p id="userRole">Role</p></div>
+        </div>
+        <button class="btn-logout" onclick="logout()">🚪 Logout</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <!-- header -->
+      <div class="content-header">
+        <div>
+          <h1>👥 Admin Panel</h1>
+          <p>User and system management</p>
+        </div>
+        <div class="header-actions">
+          <button class="btn-add" onclick="openAddModal()">➕ Add User</button>
+        </div>
+      </div>
+
+      <div class="content-body">
+        <!-- stats cards for user counts -->
+        <div class="stats-grid" style="margin-bottom:24px;">
+          <div class="stat-card">
+            <div class="stat-icon blue">👥</div>
+            <div class="stat-details"><p>Total Users</p><h3 id="totalUsers">0</h3></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon red">👑</div>
+            <div class="stat-details"><p>Admins</p><h3 id="adminCount">0</h3></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon yellow">🎯</div>
+            <div class="stat-details"><p>Operators</p><h3 id="operatorCount">0</h3></div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon teal">👁️</div>
+            <div class="stat-details"><p>Viewers</p><h3 id="viewerCount">0</h3></div>
+          </div>
+        </div>
+
+        <!-- users table -->
+        <div class="table-container">
+          <div class="table-header"><h3>👥 All Users</h3></div>
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>User</th>
+                <th>Email</th>
+                <th>Role</th>
+                <th>Created</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="usersBody"></tbody>
+          </table>
+        </div>
+
+        <!-- system info section -->
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:24px;">
+          <!-- tech stack info -->
+          <div class="table-container">
+            <div class="table-header"><h3>🔧 System Information</h3></div>
+            <div style="padding:20px;">
+              <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--dark-border);">
+                <span style="color:#64748b;">Database</span>
+                <span style="font-weight:600;">MySQL - maritime_fleet</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--dark-border);">
+                <span style="color:#64748b;">Backend</span>
+                <span style="font-weight:600;">Node.js + Express</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--dark-border);">
+                <span style="color:#64748b;">API Port</span>
+                <span style="font-weight:600;">5000</span>
+              </div>
+              <div style="display:flex;justify-content:space-between;padding:12px 0;">
+                <span style="color:#64748b;">Authentication</span>
+                <span style="font-weight:600;">JWT Token</span>
+              </div>
+            </div>
+          </div>
+          <!-- database tables list -->
+          <div class="table-container">
+            <div class="table-header"><h3>📊 Database Tables</h3></div>
+            <div style="padding:20px;">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;">
+                <div style="padding:8px 12px;background:var(--dark-bg);border-radius:6px;">✅ users</div>
+                <div style="padding:8px 12px;background:var(--dark-bg);border-radius:6px;">✅ vessels</div>
+                <div style="padding:8px 12px;background:var(--dark-bg);border-radius:6px;">✅ vessel_locations</div>
+                <div style="padding:8px 12px;background:var(--dark-bg);border-radius:6px;">✅ routes</div>
+                <div style="padding:8px 12px;background:var(--dark-bg);border-radius:6px;">✅ route_waypoints</div>
+                <div style="padding:8px 12px;background:var(--dark-bg);border-radius:6px;">✅ engine_logs</div>
+                <div style="padding:8px 12px;background:var(--dark-bg);border-radius:6px;">✅ submarine_depth_logs</div>
+                <div style="padding:8px 12px;background:var(--dark-bg);border-radius:6px;">✅ alerts</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- modal for adding/editing users -->
+  <div id="userModal" class="modal" style="display:none;">
+    <div class="modal-overlay" onclick="closeModal()"></div>
+    <div class="modal-content" style="width:500px;">
+      <div class="modal-header">
+        <h2 id="modalTitle">Add User</h2>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <form id="userForm" onsubmit="saveUser(event)">
+        <div class="modal-body">
+          <!-- name field -->
+          <div class="form-group">
+            <label>Full Name *</label>
+            <input type="text" id="userName2" required placeholder="John Doe">
+          </div>
+          <!-- email field -->
+          <div class="form-group">
+            <label>Email *</label>
+            <input type="email" id="userEmail" required placeholder="john@example.com">
+          </div>
+          <!-- password field -->
+          <div class="form-group" id="passwordGroup">
+            <label>Password *</label>
+            <input type="password" id="userPassword" placeholder="Min 6 characters">
+          </div>
+          <!-- role dropdown -->
+          <div class="form-group">
+            <label>Role *</label>
+            <select id="userRole2" required>
+              <option value="viewer">Viewer (Read Only)</option>
+              <option value="operator">Operator (Read + Write)</option>
+              <option value="admin">Admin (Full Access)</option>
+            </select>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-save">💾 Save User</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // api url
+    const API_URL = 'http://localhost:5000/api';
+    // store users list
+    let users = [];
+    let editingId = null;
+    let currentUser = null;
+    
+    // check if logged in AND is admin
+    function checkAuth() {
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+      if (!token || !userStr) { window.location.href = 'login.html'; return null; }
+      try {
+        const user = JSON.parse(userStr);
+        // must be admin to access this page
+        if (user.role !== 'admin') {
+          alert('Access denied. Admin privileges required.');
+          window.location.href = 'dashboard.html';
+          return null;
+        }
+        return user;
+      } catch (e) {
+        window.location.href = 'login.html';
+        return null;
+      }
+    }
+    
+    function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+    
+    // fetch with auth token
+    async function fetchAPI(url, options = {}) {
+      const token = localStorage.getItem('token');
+      const config = {
+        ...options,
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, ...options.headers }
+      };
+      const res = await fetch(url, config);
+      if (res.status === 401) { logout(); return null; }
+      return res.json();
+    }
+    
+    // get colored badge for role
+    function getRoleBadge(role) {
+      return `<span class="role-badge role-${role}">${role.toUpperCase()}</span>`;
+    }
+    
+    // load all users
+    async function loadUsers() {
+      const data = await fetchAPI(`${API_URL}/auth/users`);
+      users = data || [];
+      
+      // update counts
+      document.getElementById('totalUsers').textContent = users.length;
+      document.getElementById('adminCount').textContent = users.filter(u => u.role === 'admin').length;
+      document.getElementById('operatorCount').textContent = users.filter(u => u.role === 'operator').length;
+      document.getElementById('viewerCount').textContent = users.filter(u => u.role === 'viewer').length;
+      
+      const tbody = document.getElementById('usersBody');
+      // empty state
+      if (users.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:40px;color:#64748b;">No users found</td></tr>';
+        return;
+      }
+      
+      // build table rows
+      tbody.innerHTML = users.map(u => `
+        <tr>
+          <td>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div style="width:36px;height:36px;background:linear-gradient(135deg,#0ea5e9,#8b5cf6);border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:12px;">
+                ${u.name.substring(0, 2).toUpperCase()}
+              </div>
+              <strong>${u.name}</strong>
+            </div>
+          </td>
+          <td>${u.email}</td>
+          <td>${getRoleBadge(u.role)}</td>
+          <td>${new Date(u.created_at).toLocaleDateString()}</td>
+          <td>
+            <div class="table-actions">
+              <button class="btn-icon btn-icon-edit" onclick="openEditModal(${u.id})" title="Edit">✏️</button>
+              ${u.id !== currentUser?.id ? `<button class="btn-icon btn-icon-danger" onclick="deleteUser(${u.id})" title="Delete">🗑️</button>` : ''}
+            </div>
+          </td>
+        </tr>
+      `).join('');
+    }
+    
+    // open modal for adding new user
+    function openAddModal() {
+      editingId = null;
+      document.getElementById('modalTitle').textContent = 'Add New User';
+      document.getElementById('userForm').reset();
+      document.getElementById('passwordGroup').style.display = 'block';
+      document.getElementById('userPassword').required = true;
+      document.getElementById('userModal').style.display = 'flex';
+    }
+    
+    // open modal for editing user
+    function openEditModal(id) {
+      const user = users.find(u => u.id === id);
+      if (!user) return;
+      
+      editingId = id;
+      document.getElementById('modalTitle').textContent = 'Edit User';
+      document.getElementById('userName2').value = user.name;
+      document.getElementById('userEmail').value = user.email;
+      document.getElementById('userRole2').value = user.role;
+      document.getElementById('userPassword').value = '';
+      // password not required when editing
+      document.getElementById('userPassword').required = false;
+      document.getElementById('userPassword').placeholder = 'Leave blank to keep current';
+      document.getElementById('userModal').style.display = 'flex';
+    }
+    
+    function closeModal() {
+      document.getElementById('userModal').style.display = 'none';
+      editingId = null;
+    }
+    
+    // save user - works for both add and edit
+    async function saveUser(e) {
+      e.preventDefault();
+      
+      const data = {
+        name: document.getElementById('userName2').value,
+        email: document.getElementById('userEmail').value,
+        role: document.getElementById('userRole2').value
+      };
+      
+      const password = document.getElementById('userPassword').value;
+      if (password) data.password = password;
+      
+      // new users need password
+      if (!editingId && !password) {
+        alert('Password is required for new users');
+        return;
+      }
+      
+      // different endpoint for add vs edit
+      const url = editingId ? `${API_URL}/auth/users/${editingId}` : `${API_URL}/auth/register`;
+      const method = editingId ? 'PUT' : 'POST';
+      
+      const result = await fetchAPI(url, { method, body: JSON.stringify(data) });
+      
+      if (result && !result.error) {
+        closeModal();
+        loadUsers();
+      } else {
+        alert(result?.message || 'Error saving user');
+      }
+    }
+    
+    // delete user
+    async function deleteUser(id) {
+      if (!confirm('Are you sure you want to delete this user?')) return;
+      
+      const result = await fetchAPI(`${API_URL}/auth/users/${id}`, { method: 'DELETE' });
+      if (result && !result.error) {
+        loadUsers();
+      } else {
+        alert(result?.message || 'Error deleting user');
+      }
+    }
+    
+    // when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      currentUser = checkAuth();
+      if (!currentUser) return;
+      
+      // show user info
+      document.getElementById('userName').textContent = currentUser.name;
+      document.getElementById('userRole').textContent = currentUser.role.toUpperCase();
+      document.getElementById('userAvatar').textContent = currentUser.name.substring(0, 2).toUpperCase();
+      
+      loadUsers();
+    });
+  </script>
+</body>
+</html>

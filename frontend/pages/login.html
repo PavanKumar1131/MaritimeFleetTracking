@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login - Maritime Fleet Control</title>
+  <!-- using google fonts for nicer text -->
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <style>
+    /* reset stuff */
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      background: #0a1628;
+    }
+
+    /* login page stuff */
+    .login-page {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding: 40px;
+      position: relative;
+    }
+
+    /* background with ship image - looks cool */
+    .background-image {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: 
+        linear-gradient(135deg, rgba(10, 22, 40, 0.9) 0%, rgba(13, 31, 53, 0.85) 50%, rgba(10, 22, 40, 0.9) 100%),
+        url('https://images.unsplash.com/photo-1569263979104-865ab7cd8d13?ixlib=rb-4.0.3&auto=format&fit=crop&w=1920&q=80') center/cover no-repeat;
+      z-index: 0;
+    }
+
+    /* brand text on the left side */
+    .brand-overlay {
+      position: fixed;
+      top: 50%;
+      left: 80px;
+      transform: translateY(-50%);
+      z-index: 5;
+    }
+
+    /* brand animates from bottom with float effect */
+    .brand-overlay h2 {
+      font-size: 48px;
+      font-weight: 700;
+      color: #e8f4fc;
+      text-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+      margin-bottom: 10px;
+      animation: textFloatUp 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      opacity: 0;
+    }
+
+    .brand-overlay p {
+      font-size: 14px;
+      color: #00d4ff;
+      letter-spacing: 6px;
+      text-transform: uppercase;
+      animation: textFloatUp 1s cubic-bezier(0.22, 1, 0.36, 1) 0.15s forwards;
+      opacity: 0;
+    }
+
+    /* smooth float up animation like hovering into place */
+    @keyframes textFloatUp {
+      0% { 
+        opacity: 0; 
+        transform: translateY(60px);
+      }
+      60% {
+        opacity: 1;
+        transform: translateY(-5px);
+      }
+      80% {
+        transform: translateY(3px);
+      }
+      100% { 
+        opacity: 1; 
+        transform: translateY(0);
+      }
+    }
+
+    /* the login box - spent a while on this */
+    .login-box {
+      position: relative;
+      z-index: 10;
+      width: 100%;
+      max-width: 420px;
+      background: rgba(13, 31, 53, 0.95);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 212, 255, 0.15);
+      border-radius: 20px;
+      padding: 48px 40px;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5), 0 0 40px rgba(0, 212, 255, 0.1);
+      animation: boxSlideUp 0.7s cubic-bezier(0.33, 1, 0.68, 1) forwards;
+      opacity: 0;
+    }
+
+    /* smooth slide up from bottom */
+    @keyframes boxSlideUp {
+      from { 
+        opacity: 0; 
+        transform: translateY(40px); 
+      }
+      to { 
+        opacity: 1; 
+        transform: translateY(0); 
+      }
+    }
+
+    /* floating animation for icon */
+    @keyframes float {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-8px); }
+    }
+
+    .login-header {
+      text-align: center;
+      margin-bottom: 36px;
+    }
+
+    /* the anchor icon at top */
+    .login-icon {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, #00d4ff, #00f5d4);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 24px;
+      font-size: 40px;
+      box-shadow: 0 10px 30px rgba(0, 212, 255, 0.3);
+      animation: iconFloatUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) forwards, float 3s ease-in-out infinite 1s;
+      opacity: 0;
+    }
+
+    /* icon float up animation */
+    @keyframes iconFloatUp {
+      0% { 
+        opacity: 0; 
+        transform: translateY(40px) scale(0.8);
+      }
+      60% {
+        opacity: 1;
+        transform: translateY(-8px) scale(1.05);
+      }
+      100% { 
+        opacity: 1; 
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .login-header h1 {
+      font-size: 26px;
+      font-weight: 700;
+      color: #e8f4fc;
+      margin-bottom: 8px;
+      animation: textFloatUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.1s forwards;
+      opacity: 0;
+    }
+
+    .login-header p {
+      font-size: 14px;
+      color: #8db4d4;
+      animation: textFloatUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.2s forwards;
+      opacity: 0;
+    }
+
+    /* form input styles */
+    .form-group {
+      margin-bottom: 20px;
+      animation: textFloatUp 0.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      opacity: 0;
+    }
+
+    .form-group:nth-child(1) { animation-delay: 0.25s; }
+    .form-group:nth-child(2) { animation-delay: 0.35s; }
+
+    .form-group label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 12px;
+      font-weight: 600;
+      color: #8db4d4;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 14px 18px;
+      background: #0a1628;
+      border: 2px solid rgba(0, 212, 255, 0.15);
+      border-radius: 12px;
+      color: #e8f4fc;
+      font-size: 15px;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    /* input focus glow effect */
+    .form-group input:focus {
+      outline: none;
+      border-color: #00d4ff;
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.2);
+      background: rgba(0, 212, 255, 0.05);
+    }
+
+    .form-group input::placeholder {
+      color: #5a7a9a;
+    }
+
+    /* login button - has a cool shine effect */
+    .btn-login {
+      width: 100%;
+      padding: 16px;
+      background: linear-gradient(135deg, #00d4ff, #00f5d4);
+      color: #0a1628;
+      border: none;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-top: 8px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 4px 20px rgba(0, 212, 255, 0.3);
+      animation: buttonFloatUp 0.8s cubic-bezier(0.22, 1, 0.36, 1) 0.45s forwards;
+      opacity: 0;
+    }
+
+    /* button float up animation */
+    @keyframes buttonFloatUp {
+      0% { 
+        opacity: 0; 
+        transform: translateY(30px);
+      }
+      60% {
+        opacity: 1;
+        transform: translateY(-4px);
+      }
+      80% {
+        transform: translateY(2px);
+      }
+      100% { 
+        opacity: 1; 
+        transform: translateY(0);
+      }
+    }
+
+    /* the shine animation that goes across */
+    .btn-login::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+      transition: left 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .btn-login:hover::before {
+      left: 100%;
+    }
+
+    .btn-login:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 10px 35px rgba(0, 212, 255, 0.4);
+    }
+
+    .btn-login:active {
+      transform: translateY(-1px);
+      box-shadow: 0 5px 20px rgba(0, 212, 255, 0.3);
+    }
+
+    .btn-login:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-login:disabled::before {
+      display: none;
+    }
+
+    /* error message box */
+    .error-message {
+      color: #ff6b6b;
+      font-size: 13px;
+      margin-top: 16px;
+      padding: 12px 16px;
+      background: rgba(255, 107, 107, 0.1);
+      border: 1px solid rgba(255, 107, 107, 0.2);
+      border-radius: 10px;
+      display: none;
+      text-align: center;
+    }
+
+    /* mobile responsive stuff */
+    @media (max-width: 1024px) {
+      .brand-overlay { display: none; }
+      .login-page { justify-content: center; }
+    }
+
+    @media (max-width: 480px) {
+      .login-page { padding: 20px; }
+      .login-box { padding: 32px 24px; }
+      .login-header h1 { font-size: 22px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="login-page">
+    <!-- background image -->
+    <div class="background-image"></div>
+    
+    <!-- brand text on left side -->
+    <div class="brand-overlay">
+      <h2>MARITIME FLEET</h2>
+      <p>Control System</p>
+    </div>
+
+    <!-- login box on right -->
+    <div class="login-box">
+      <div class="login-header">
+        <div class="login-icon">⚓</div>
+        <h1>Welcome Back</h1>
+        <p>Sign in to access the control center</p>
+      </div>
+
+      <!-- login form -->
+      <form id="loginForm">
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <input type="email" id="email" placeholder="Enter your email" required>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" placeholder="Enter your password" required>
+        </div>
+
+        <button type="submit" class="btn-login" id="loginBtn">
+          Sign In
+        </button>
+
+        <p id="loginError" class="error-message"></p>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    // api url - change this if backend is somewhere else
+    const API_URL = 'http://localhost:5000/api';
+    
+    // handle login form submit
+    document.getElementById('loginForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      // get the input values
+      const email = document.getElementById('email').value;
+      const password = document.getElementById('password').value;
+      const loginBtn = document.getElementById('loginBtn');
+      const errorEl = document.getElementById('loginError');
+      
+      // show loading state
+      loginBtn.textContent = 'Signing in...';
+      loginBtn.disabled = true;
+      errorEl.style.display = 'none';
+
+      try {
+        // send login request to backend
+        const response = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email, password })
+        });
+
+        const data = await response.json();
+
+        // if login worked save token and go to dashboard
+        if (response.ok && data.token) {
+          localStorage.setItem('token', data.token);
+          localStorage.setItem('user', JSON.stringify(data.user));
+          window.location.href = 'dashboard.html';
+        } else {
+          // show error if login failed
+          errorEl.textContent = data.error || 'Invalid credentials';
+          errorEl.style.display = 'block';
+          loginBtn.textContent = 'Sign In';
+          loginBtn.disabled = false;
+        }
+      } catch (error) {
+        // server connection error
+        errorEl.textContent = 'Cannot connect to server';
+        errorEl.style.display = 'block';
+        loginBtn.textContent = 'Sign In';
+        loginBtn.disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,92 @@
+<!-- sidebar component - reusable across pages -->
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-brand">
+      <div class="brand-icon">🚢</div>
+      <div class="brand-text">
+        <h3>MARITIME</h3>
+        <p>Fleet Control</p>
+      </div>
+    </div>
+  </div>
+  
+  <!-- navigation links -->
+  <nav class="sidebar-nav">
+    <a href="dashboard.html" class="nav-item" data-page="dashboard">
+      <span class="nav-icon">📊</span>
+      <span>Dashboard</span>
+    </a>
+    <a href="fleet-map.html" class="nav-item" data-page="fleet-map">
+      <span class="nav-icon">🗺️</span>
+      <span>Fleet Map</span>
+    </a>
+    <a href="vessels.html" class="nav-item" data-page="vessels">
+      <span class="nav-icon">🚢</span>
+      <span>Vessels</span>
+    </a>
+    <a href="routes.html" class="nav-item" data-page="routes">
+      <span class="nav-icon">🧭</span>
+      <span>Routes</span>
+    </a>
+    <a href="analytics.html" class="nav-item" data-page="analytics">
+      <span class="nav-icon">📈</span>
+      <span>Analytics</span>
+    </a>
+    <a href="alerts.html" class="nav-item" data-page="alerts">
+      <span class="nav-icon">🔔</span>
+      <span>Alerts</span>
+    </a>
+    <!-- admin only link -->
+    <a href="admin-panel.html" class="nav-item admin-only" data-page="admin-panel">
+      <span class="nav-icon">⚙️</span>
+      <span>Admin Panel</span>
+    </a>
+  </nav>
+  
+  <!-- user info at bottom -->
+  <div class="sidebar-footer">
+    <div class="user-info">
+      <div class="user-avatar" id="userAvatar">AD</div>
+      <div class="user-details">
+        <h4 id="userName">Admin User</h4>
+        <p id="userRole">Administrator</p>
+      </div>
+    </div>
+    <button class="btn-logout" onclick="logout()">
+      <span>🚪</span>
+      Sign Out
+    </button>
+  </div>
+</aside>
+
+<script>
+  // highlight current page in sidebar
+  const currentPage = window.location.pathname.split('/').pop().replace('.html', '');
+  document.querySelectorAll('.nav-item').forEach(item => {
+    if (item.dataset.page === currentPage) {
+      item.classList.add('active');
+    }
+  });
+  
+  // get user from localStorage and update display
+  const user = JSON.parse(localStorage.getItem('user') || '{}');
+  if (user.name) {
+    document.getElementById('userName').textContent = user.name;
+    // capitalize first letter of role
+    document.getElementById('userRole').textContent = user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1) : 'User';
+    // get initials for avatar
+    document.getElementById('userAvatar').textContent = user.name.split(' ').map(n => n[0]).join('').toUpperCase();
+  }
+  
+  // hide admin links for non-admins
+  if (user.role !== 'admin') {
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+  }
+  
+  // logout function
+  function logout() {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = 'login.html';
+  }
+</script>

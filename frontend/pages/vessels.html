@@ -1,0 +1,849 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Vessels - Maritime Fleet Control</title>
+  <link rel="stylesheet" href="../assets/css/main.css">
+  <style>
+    /* modal popup styles - took a while to get right */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(10, 22, 40, 0.9);
+      backdrop-filter: blur(8px);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal.active {
+      display: flex;
+    }
+    .modal-content {
+      position: relative;
+      z-index: 1001;
+      background: linear-gradient(135deg, var(--ocean-dark), var(--ocean-medium));
+      border-radius: 20px;
+      border: 1px solid var(--dark-border);
+      max-height: 90vh;
+      overflow-y: auto;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5), 0 0 60px rgba(0, 212, 255, 0.2);
+      animation: modalSlideIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    /* glowing line at top of modal */
+    .modal-content::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: linear-gradient(90deg, var(--primary), var(--secondary), var(--primary));
+      background-size: 200% 100%;
+      animation: shimmer 3s linear infinite;
+      border-radius: 20px 20px 0 0;
+    }
+    /* modal slide in animation */
+    @keyframes modalSlideIn {
+      from { opacity: 0; transform: translateY(-30px) scale(0.95); }
+      to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    /* shimmer effect for the line */
+    @keyframes shimmer {
+      0% { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    .modal-content input,
+    .modal-content select,
+    .modal-content textarea {
+      position: relative;
+      z-index: 1002;
+    }
+    /* action buttons */
+    .action-btn {
+      padding: 10px 16px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 600;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .action-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .action-btn:not(:disabled):hover {
+      transform: translateY(-2px);
+    }
+    /* notice box for permissions */
+    .permission-notice {
+      padding: 16px 20px;
+      background: rgba(0, 212, 255, 0.1);
+      border: 1px solid rgba(0, 212, 255, 0.3);
+      border-radius: 12px;
+      margin-bottom: 24px;
+      font-size: 14px;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    /* small vessel card styling */
+    .vessel-card-mini {
+      background: linear-gradient(135deg, rgba(0,0,0,0.2), rgba(0,0,0,0.1));
+      border: 1px solid var(--dark-border);
+      border-radius: 12px;
+      padding: 16px;
+      transition: all 0.3s;
+    }
+    .vessel-card-mini:hover {
+      border-color: var(--dark-border-hover);
+      transform: translateY(-4px);
+      box-shadow: 0 10px 30px rgba(0, 212, 255, 0.15);
+    }
+  </style>
+</head>
+<body>
+  <div class="dashboard">
+    <aside class="sidebar">
+      <div class="sidebar-header">
+        <div class="sidebar-brand">
+          <div class="brand-icon">⚓</div>
+          <div class="brand-text"><h3>MARITIME</h3><p>FLEET CONTROL</p></div>
+        </div>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span><span>Dashboard</span></a>
+        <a href="fleet-map.html" class="nav-item"><span class="nav-icon">🗺️</span><span>Fleet Map</span></a>
+        <a href="vessels.html" class="nav-item active"><span class="nav-icon">🚢</span><span>Vessels</span></a>
+        <a href="routes.html" class="nav-item"><span class="nav-icon">🧭</span><span>Routes</span></a>
+        <a href="analytics.html" class="nav-item"><span class="nav-icon">📈</span><span>Analytics</span></a>
+        <a href="alerts.html" class="nav-item"><span class="nav-icon">🔔</span><span>Alerts</span></a>
+        <a href="admin-panel.html" class="nav-item" id="adminLink" style="display:none;"><span class="nav-icon">👥</span><span>Admin Panel</span></a>
+      </nav>
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-avatar" id="userAvatar">CA</div>
+          <div class="user-details"><h4 id="userName">User</h4><p id="userRole">Role</p></div>
+        </div>
+        <button class="btn-logout" onclick="logout()">🚪 Logout</button>
+      </div>
+    </aside>
+
+    <main class="main-content">
+      <div class="content-header">
+        <div>
+          <h1>🚢 Fleet Vessels</h1>
+          <p><span id="vesselCount">0</span> vessels in fleet</p>
+        </div>
+        <div class="header-actions">
+          <span id="roleBadge" class="role-badge"></span>
+          <button class="btn-add" id="addVesselBtn" onclick="openAddModal()" style="display:none;">➕ Add Vessel</button>
+        </div>
+      </div>
+
+      <div class="content-body">
+        <!-- Permission Notice -->
+        <div class="permission-notice" id="permissionNotice"></div>
+
+        <!-- Stats Row -->
+        <div class="stats-grid" style="margin-bottom:24px;">
+          <div class="stat-card">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div class="stat-icon" style="background:linear-gradient(135deg,#10b981,#059669);">🟢</div>
+              <div class="stat-details"><p>Active</p><h3 id="activeCount">0</h3></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div class="stat-icon" style="background:linear-gradient(135deg,#f59e0b,#d97706);">🔧</div>
+              <div class="stat-details"><p>Maintenance</p><h3 id="maintCount">0</h3></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div class="stat-icon" style="background:linear-gradient(135deg,#ef4444,#dc2626);">🚨</div>
+              <div class="stat-details"><p>Critical</p><h3 id="criticalCount">0</h3></div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div style="display:flex;align-items:center;gap:12px;">
+              <div class="stat-icon" style="background:linear-gradient(135deg,#64748b,#475569);">⏸️</div>
+              <div class="stat-details"><p>Docked</p><h3 id="dockedCount">0</h3></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Vessel Cards -->
+        <div id="vesselGrid" class="vessel-grid"></div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Add/Edit Modal (Admin Only) -->
+  <div id="vesselModal" class="modal">
+    <div class="modal-content" style="width:600px;">
+      <div class="modal-header">
+        <h2 id="modalTitle">Add Vessel</h2>
+        <button class="modal-close" onclick="closeModal()">×</button>
+      </div>
+      <form id="vesselForm" onsubmit="saveVessel(event)">
+        <div class="modal-body">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+            <div class="form-group">
+              <label>Vessel Name *</label>
+              <input type="text" id="vesselName" required placeholder="Enter vessel name">
+            </div>
+            <div class="form-group">
+              <label>Type *</label>
+              <select id="vesselType" required>
+                <option value="Cargo">Cargo</option>
+                <option value="Naval">Naval</option>
+                <option value="Tanker">Tanker</option>
+                <option value="Submarine">Submarine</option>
+                <option value="Passenger">Passenger</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>IMO Number</label>
+              <input type="text" id="imoNumber" placeholder="IMO1234567">
+            </div>
+            <div class="form-group">
+              <label>Status *</label>
+              <select id="vesselStatus" required>
+                <option value="Active">Active</option>
+                <option value="Docked">Docked</option>
+                <option value="Maintenance">Maintenance</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label>Latitude</label>
+              <input type="number" step="any" id="latitude" placeholder="e.g. 25.123">
+            </div>
+            <div class="form-group">
+              <label>Longitude</label>
+              <input type="number" step="any" id="longitude" placeholder="e.g. -80.456">
+            </div>
+            <div class="form-group">
+              <label>Speed (knots)</label>
+              <input type="number" step="0.1" id="speed" min="0" value="0" placeholder="e.g. 15.5">
+            </div>
+            <div class="form-group">
+              <label>Heading (°)</label>
+              <input type="number" id="heading" min="0" max="360" value="0" placeholder="0-360">
+            </div>
+            <div class="form-group">
+              <label>Engine Health (%)</label>
+              <input type="number" id="engineHealth" min="0" max="100" value="100">
+            </div>
+            <div class="form-group">
+              <label>Fuel Level (%)</label>
+              <input type="number" id="fuelLevel" min="0" max="100" value="100">
+            </div>
+            <div class="form-group" style="grid-column:span 2;">
+              <label>Weather Status</label>
+              <select id="weatherStatus">
+                <option value="Clear">Clear</option>
+                <option value="Cloudy">Cloudy</option>
+                <option value="Rainy">Rainy</option>
+                <option value="Stormy">Stormy</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn-save" id="saveBtn">💾 Save Vessel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Update Metrics Modal (Operator Only) -->
+  <div id="metricsModal" class="modal">
+    <div class="modal-content" style="width:500px;">
+      <div class="modal-header">
+        <h2>Update Vessel Metrics</h2>
+        <button class="modal-close" onclick="closeMetricsModal()">×</button>
+      </div>
+      <form id="metricsForm" onsubmit="saveMetrics(event)">
+        <div class="modal-body">
+          <input type="hidden" id="metricsVesselId">
+          <h3 id="metricsVesselName" style="margin-bottom:20px;color:var(--primary);"></h3>
+          
+          <div class="form-group">
+            <label>Speed (knots)</label>
+            <input type="number" step="0.1" id="metricsSpeed" min="0" placeholder="Enter speed">
+          </div>
+          <div class="form-group">
+            <label>Engine Health (%)</label>
+            <input type="number" id="metricsEngineHealth" min="0" max="100" placeholder="0-100">
+          </div>
+          <div class="form-group">
+            <label>Fuel Level (%)</label>
+            <input type="number" id="metricsFuelLevel" min="0" max="100" placeholder="0-100">
+          </div>
+          <div class="form-group">
+            <label>Weather Status</label>
+            <select id="metricsWeatherStatus">
+              <option value="Clear">Clear</option>
+              <option value="Cloudy">Cloudy</option>
+              <option value="Rainy">Rainy</option>
+              <option value="Stormy">Stormy</option>
+            </select>
+          </div>
+          <div class="form-group" id="depthGroup" style="display:none;">
+            <label>Submarine Depth (meters)</label>
+            <input type="number" id="metricsDepth" min="0" placeholder="Depth in meters">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-cancel" onclick="closeMetricsModal()">Cancel</button>
+          <button type="submit" class="btn-save">📊 Update Metrics</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- View Details Modal -->
+  <div id="detailsModal" class="modal">
+    <div class="modal-content" style="width:700px;">
+      <div class="modal-header">
+        <h2 id="detailsTitle">Vessel Details</h2>
+        <button class="modal-close" onclick="closeDetailsModal()">×</button>
+      </div>
+      <div class="modal-body" id="detailsBody"></div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeDetailsModal()">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // api url for backend
+    const API_URL = 'http://localhost:5000/api';
+    let vessels = [];
+    let editingId = null;
+    let currentUser = null;
+
+    // permissions for each role - admin can do everything, viewer can only look
+    const PERMISSIONS = {
+      admin: { canAdd: true, canEdit: true, canDelete: true, canUpdateMetrics: true },
+      operator: { canAdd: false, canEdit: false, canDelete: false, canUpdateMetrics: true },
+      viewer: { canAdd: false, canEdit: false, canDelete: false, canUpdateMetrics: false }
+    };
+
+    // check if user is logged in
+    function checkAuth() {
+      const token = localStorage.getItem('token');
+      const userStr = localStorage.getItem('user');
+      if (!token || !userStr) { window.location.href = 'login.html'; return null; }
+      try { return JSON.parse(userStr); } catch (e) { window.location.href = 'login.html'; return null; }
+    }
+
+    // logout function - clears storage and goes to login
+    function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+
+    // get what the current user can do
+    function getUserPermissions() {
+      if (!currentUser) return PERMISSIONS.viewer;
+      return PERMISSIONS[currentUser.role] || PERMISSIONS.viewer;
+    }
+
+    // helper function to fetch from api with auth token
+    async function fetchAPI(url, options = {}) {
+      try {
+        const token = localStorage.getItem('token');
+        const config = {
+          ...options,
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+            ...options.headers
+          }
+        };
+        const res = await fetch(url, config);
+        // if token expired go to login
+        if (res.status === 401) { logout(); return null; }
+        const data = await res.json();
+        if (!res.ok) {
+          return { error: true, message: data.message || 'Request failed' };
+        }
+        return data;
+      } catch (err) {
+        console.error('Fetch error:', err);
+        return { error: true, message: err.message };
+      }
+    }
+
+    // colors for different vessel types
+    function getTypeColor(type) {
+      return { Cargo: '#0ea5e9', Naval: '#10b981', Tanker: '#f59e0b', Submarine: '#8b5cf6', Passenger: '#ec4899' }[type] || '#64748b';
+    }
+
+    // returns html for status badge
+    function getStatusBadge(status) {
+      const classes = { Active: 'badge-success', Docked: 'badge-default', Maintenance: 'badge-warning' };
+      return `<span class="badge ${classes[status] || 'badge-default'}">${status}</span>`;
+    }
+
+    // setup ui based on user role
+    function setupRoleUI() {
+      const perms = getUserPermissions();
+      const role = currentUser?.role || 'viewer';
+
+      // show role badge
+      const roleBadge = document.getElementById('roleBadge');
+      roleBadge.textContent = role.toUpperCase();
+      roleBadge.className = `role-badge role-${role}`;
+
+      // only show add button for admins
+      document.getElementById('addVesselBtn').style.display = perms.canAdd ? 'flex' : 'none';
+
+      // show permission notice based on role
+      const notice = document.getElementById('permissionNotice');
+      if (role === 'admin') {
+        notice.innerHTML = '🔐 <strong>Admin Access:</strong> You can add, edit, and delete vessels.';
+        notice.style.borderColor = 'rgba(0, 245, 212, 0.3)';
+        notice.style.background = 'rgba(0, 245, 212, 0.1)';
+        notice.style.color = '#00f5d4';
+      } else if (role === 'operator') {
+        notice.innerHTML = '🔧 <strong>Operator Access:</strong> You can update vessel metrics (speed, engine health, weather, depth).';
+        notice.style.borderColor = 'rgba(0, 212, 255, 0.3)';
+        notice.style.background = 'rgba(0, 212, 255, 0.1)';
+        notice.style.color = '#00d4ff';
+      } else {
+        notice.innerHTML = '👁️ <strong>Viewer Access:</strong> You can view vessel information only.';
+        notice.style.borderColor = 'rgba(255, 107, 107, 0.3)';
+        notice.style.background = 'rgba(255, 107, 107, 0.1)';
+        notice.style.color = '#ff6b6b';
+      }
+    }
+
+    // load all vessels from api
+    async function loadVessels() {
+      try {
+        const data = await fetchAPI(`${API_URL}/vessels`);
+        console.log('Vessels data received:', data);
+        
+        if (data && data.error) {
+          console.error('API error:', data.message);
+          vessels = [];
+        } else {
+          vessels = Array.isArray(data) ? data : [];
+        }
+
+        // update the counts
+        document.getElementById('vesselCount').textContent = vessels.length;
+        document.getElementById('activeCount').textContent = vessels.filter(v => v.status === 'Active').length;
+        document.getElementById('maintCount').textContent = vessels.filter(v => v.status === 'Maintenance').length;
+        document.getElementById('criticalCount').textContent = vessels.filter(v => (v.engine_health || 0) < 50).length;
+        document.getElementById('dockedCount').textContent = vessels.filter(v => v.status === 'Docked').length;
+
+        renderVesselGrid();
+      } catch (err) {
+        console.error('Error loading vessels:', err);
+        vessels = [];
+        renderVesselGrid();
+      }
+    }
+
+    // render all the vessel cards
+    function renderVesselGrid() {
+      const grid = document.getElementById('vesselGrid');
+      const perms = getUserPermissions();
+
+      // show empty state if no vessels
+      if (!vessels || vessels.length === 0) {
+        grid.innerHTML = `
+          <div class="empty-state" style="grid-column:1/-1;text-align:center;padding:60px;">
+            <p style="font-size:48px;margin-bottom:16px;">🚢</p>
+            <h3>No vessels found</h3>
+            <p style="color:var(--text-muted);">Add your first vessel to get started</p>
+          </div>`;
+        return;
+      }
+
+      // loop through vessels and create cards
+      grid.innerHTML = vessels.map(v => {
+        const engineHealth = v.engine_health || 0;
+        const fuelLevel = v.fuel_level || 0;
+        const engineClass = engineHealth >= 80 ? 'good' : engineHealth >= 50 ? 'warning' : 'critical';
+        const fuelClass = fuelLevel >= 50 ? 'good' : fuelLevel >= 20 ? 'warning' : 'critical';
+        const typeClass = (v.type || 'cargo').toLowerCase();
+        
+        // weather icons
+        const weatherIcons = {
+          'Clear': '☀️',
+          'Cloudy': '☁️',
+          'Rainy': '🌧️',
+          'Stormy': '⛈️',
+          'Foggy': '🌫️',
+          'N/A': '🌊'
+        };
+        const weatherIcon = weatherIcons[v.weather_status] || '🌊';
+        
+        // format coordinates - handle null values
+        const lat = v.latitude ? parseFloat(v.latitude).toFixed(4) : 'N/A';
+        const lng = v.longitude ? parseFloat(v.longitude).toFixed(4) : 'N/A';
+
+        // build action buttons based on role
+        let actionButtons = `<button class="btn-action btn-action-details" onclick="viewDetails(${v.id})">📋 Details</button>`;
+        
+        if (perms.canEdit) {
+          actionButtons += `<button class="btn-action btn-action-edit" onclick="openEditModal(${v.id})">✏️ Edit</button>`;
+        }
+        
+        if (perms.canUpdateMetrics && !perms.canEdit) {
+          actionButtons += `<button class="btn-action btn-action-metrics" onclick="openMetricsModal(${v.id})">📊 Metrics</button>`;
+        }
+        
+        if (perms.canDelete) {
+          actionButtons += `<button class="btn-action btn-action-delete" onclick="deleteVessel(${v.id})">🗑️</button>`;
+        }
+
+        return `
+          <div class="vessel-card">
+            <div class="vessel-card-header">
+              <div class="vessel-card-header-content">
+                <div class="vessel-card-info">
+                  <div class="vessel-card-icon ${typeClass}">🚢</div>
+                  <div>
+                    <h3 class="vessel-card-title">${v.name || 'Unknown Vessel'}</h3>
+                    <p class="vessel-card-type ${typeClass}">${v.type || 'Unknown'}</p>
+                  </div>
+                </div>
+                ${getStatusBadge(v.status || 'Active')}
+              </div>
+            </div>
+            <div class="vessel-card-body">
+              <div class="vessel-card-stats">
+                <div class="vessel-stat">
+                  <p class="vessel-stat-label">Speed</p>
+                  <p class="vessel-stat-value speed">${v.speed || 0} kn</p>
+                </div>
+                <div class="vessel-stat">
+                  <p class="vessel-stat-label">Heading</p>
+                  <p class="vessel-stat-value heading">${v.heading || 0}°</p>
+                </div>
+              </div>
+              
+              <div class="vessel-card-weather">
+                <span class="vessel-card-weather-icon">${weatherIcon}</span>
+                <span>${v.weather_status || 'N/A'}</span>
+              </div>
+              
+              <div class="vessel-card-position">
+                📍 ${lat}, ${lng}
+              </div>
+              
+              <div class="vessel-card-meters">
+                <div class="vessel-meter">
+                  <div class="vessel-meter-header">
+                    <span class="vessel-meter-label">Engine Health</span>
+                    <span class="vessel-meter-value ${engineClass}">${engineHealth}%</span>
+                  </div>
+                  <div class="vessel-meter-bar">
+                    <div class="vessel-meter-fill ${engineClass}" style="width: ${engineHealth}%;"></div>
+                  </div>
+                </div>
+                <div class="vessel-meter">
+                  <div class="vessel-meter-header">
+                    <span class="vessel-meter-label">Fuel Level</span>
+                    <span class="vessel-meter-value ${fuelClass}">${fuelLevel}%</span>
+                  </div>
+                  <div class="vessel-meter-bar">
+                    <div class="vessel-meter-fill ${fuelClass}" style="width: ${fuelLevel}%;"></div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="vessel-card-actions">
+                ${actionButtons}
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // open add modal - admin only
+    function openAddModal() {
+      if (!getUserPermissions().canAdd) {
+        alert('You do not have permission to add vessels.');
+        return;
+      }
+      editingId = null;
+      document.getElementById('modalTitle').textContent = 'Add New Vessel';
+      document.getElementById('vesselForm').reset();
+      // set default values
+      document.getElementById('engineHealth').value = 100;
+      document.getElementById('fuelLevel').value = 100;
+      document.getElementById('speed').value = 0;
+      document.getElementById('heading').value = 0;
+      document.getElementById('vesselModal').classList.add('active');
+    }
+
+    // open edit modal - admin only
+    function openEditModal(id) {
+      if (!getUserPermissions().canEdit) {
+        alert('You do not have permission to edit vessels.');
+        return;
+      }
+      const v = vessels.find(x => x.id === id);
+      if (!v) return;
+
+      editingId = id;
+      document.getElementById('modalTitle').textContent = 'Edit Vessel';
+      // fill in the form with vessel data
+      document.getElementById('vesselName').value = v.name;
+      document.getElementById('vesselType').value = v.type;
+      document.getElementById('imoNumber').value = v.imo_number || '';
+      document.getElementById('vesselStatus').value = v.status;
+      document.getElementById('latitude').value = v.latitude || '';
+      document.getElementById('longitude').value = v.longitude || '';
+      document.getElementById('speed').value = v.speed || 0;
+      document.getElementById('heading').value = v.heading || 0;
+      document.getElementById('engineHealth').value = v.engine_health || 100;
+      document.getElementById('fuelLevel').value = v.fuel_level || 100;
+      document.getElementById('weatherStatus').value = v.weather_status || 'Clear';
+      document.getElementById('vesselModal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('vesselModal').classList.remove('active');
+      editingId = null;
+    }
+
+    // open metrics modal - operator can use this
+    function openMetricsModal(id) {
+      if (!getUserPermissions().canUpdateMetrics) {
+        alert('You do not have permission to update metrics.');
+        return;
+      }
+      const v = vessels.find(x => x.id === id);
+      if (!v) return;
+
+      document.getElementById('metricsVesselId').value = id;
+      document.getElementById('metricsVesselName').textContent = v.name;
+      document.getElementById('metricsSpeed').value = v.speed || 0;
+      document.getElementById('metricsEngineHealth').value = v.engine_health || 100;
+      document.getElementById('metricsFuelLevel').value = v.fuel_level || 100;
+      document.getElementById('metricsWeatherStatus').value = v.weather_status || 'Clear';
+      
+      // only show depth for submarines
+      const depthGroup = document.getElementById('depthGroup');
+      depthGroup.style.display = v.type === 'Submarine' ? 'block' : 'none';
+      
+      document.getElementById('metricsModal').classList.add('active');
+    }
+
+    function closeMetricsModal() {
+      document.getElementById('metricsModal').classList.remove('active');
+    }
+
+    // save vessel - used for both add and edit
+    async function saveVessel(e) {
+      e.preventDefault();
+
+      if (!getUserPermissions().canEdit && !getUserPermissions().canAdd) {
+        alert('You do not have permission for this action.');
+        return;
+      }
+
+      // get all form values
+      const data = {
+        name: document.getElementById('vesselName').value.trim(),
+        type: document.getElementById('vesselType').value,
+        imo_number: document.getElementById('imoNumber').value.trim() || null,
+        status: document.getElementById('vesselStatus').value,
+        latitude: parseFloat(document.getElementById('latitude').value) || null,
+        longitude: parseFloat(document.getElementById('longitude').value) || null,
+        speed: parseFloat(document.getElementById('speed').value) || 0,
+        heading: parseInt(document.getElementById('heading').value) || 0,
+        engine_health: parseInt(document.getElementById('engineHealth').value) || 100,
+        fuel_level: parseInt(document.getElementById('fuelLevel').value) || 100,
+        weather_status: document.getElementById('weatherStatus').value
+      };
+
+      if (!data.name) {
+        alert('Please enter a vessel name.');
+        return;
+      }
+
+      // decide if its add or edit based on editingId
+      const url = editingId ? `${API_URL}/vessels/${editingId}` : `${API_URL}/vessels`;
+      const method = editingId ? 'PUT' : 'POST';
+
+      const result = await fetchAPI(url, { method, body: JSON.stringify(data) });
+
+      if (result && !result.error) {
+        closeModal();
+        loadVessels();
+        alert(editingId ? 'Vessel updated successfully!' : 'Vessel added successfully!');
+        // tell other pages data changed
+        localStorage.setItem('vesselUpdate', Date.now().toString());
+      } else {
+        alert(result?.message || 'Error saving vessel');
+      }
+    }
+
+    // save metrics - operator function
+    async function saveMetrics(e) {
+      e.preventDefault();
+
+      if (!getUserPermissions().canUpdateMetrics) {
+        alert('You do not have permission to update metrics.');
+        return;
+      }
+
+      const vesselId = document.getElementById('metricsVesselId').value;
+      const data = {
+        speed: parseFloat(document.getElementById('metricsSpeed').value) || 0,
+        engine_health: parseInt(document.getElementById('metricsEngineHealth').value) || 100,
+        fuel_level: parseInt(document.getElementById('metricsFuelLevel').value) || 100,
+        weather_status: document.getElementById('metricsWeatherStatus').value
+      };
+
+      // add depth for submarines
+      const depth = document.getElementById('metricsDepth').value;
+      if (depth) {
+        data.depth = parseInt(depth);
+      }
+
+      const result = await fetchAPI(`${API_URL}/vessels/${vesselId}/metrics`, { 
+        method: 'PATCH', 
+        body: JSON.stringify(data) 
+      });
+
+      if (result && !result.error) {
+        closeMetricsModal();
+        loadVessels();
+        alert('Metrics updated successfully!');
+        localStorage.setItem('vesselUpdate', Date.now().toString());
+      } else {
+        alert(result?.message || 'Error updating metrics');
+      }
+    }
+
+    // delete vessel - admin only
+    async function deleteVessel(id) {
+      if (!getUserPermissions().canDelete) {
+        alert('You do not have permission to delete vessels.');
+        return;
+      }
+
+      const vessel = vessels.find(v => v.id === id);
+      if (!confirm(`Are you sure you want to delete "${vessel?.name || 'this vessel'}"?\n\nThis will also remove associated routes and data.`)) return;
+
+      const result = await fetchAPI(`${API_URL}/vessels/${id}`, { method: 'DELETE' });
+      
+      if (result && !result.error) {
+        loadVessels();
+        alert('Vessel deleted successfully!');
+        // tell other pages
+        localStorage.setItem('vesselUpdate', Date.now().toString());
+      } else {
+        alert(result?.message || 'Error deleting vessel');
+      }
+    }
+
+    // view details - everyone can do this
+    async function viewDetails(id) {
+      const v = vessels.find(x => x.id === id);
+      if (!v) return;
+
+      // get engine logs for this vessel
+      const logs = await fetchAPI(`${API_URL}/vessels/${id}/engine-logs`);
+
+      document.getElementById('detailsTitle').textContent = v.name;
+      document.getElementById('detailsBody').innerHTML = `
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;">
+          <div>
+            <h4 style="margin-bottom:12px;color:#64748b;">Vessel Information</h4>
+            <div class="table-container">
+              <table class="data-table">
+                <tr><td style="color:#64748b;">Type</td><td>${v.type}</td></tr>
+                <tr><td style="color:#64748b;">IMO Number</td><td>${v.imo_number || 'N/A'}</td></tr>
+                <tr><td style="color:#64748b;">Status</td><td>${v.status}</td></tr>
+                <tr><td style="color:#64748b;">Speed</td><td>${v.speed || 0} kn</td></tr>
+                <tr><td style="color:#64748b;">Heading</td><td>${v.heading || 0}°</td></tr>
+                <tr><td style="color:#64748b;">Position</td><td>${v.latitude ? `${v.latitude.toFixed(4)}, ${v.longitude.toFixed(4)}` : 'N/A'}</td></tr>
+                <tr><td style="color:#64748b;">Weather</td><td>${v.weather_status || 'N/A'}</td></tr>
+              </table>
+            </div>
+          </div>
+          <div>
+            <h4 style="margin-bottom:12px;color:#64748b;">Engine Status</h4>
+            <div class="table-container">
+              <table class="data-table">
+                <tr><td style="color:#64748b;">Health</td><td>${v.engine_health}%</td></tr>
+                <tr><td style="color:#64748b;">Fuel Level</td><td>${v.fuel_level || 'N/A'}%</td></tr>
+              </table>
+            </div>
+            ${logs && logs.length > 0 ? `
+              <h4 style="margin:16px 0 12px;color:#64748b;">Recent Engine Logs</h4>
+              <div class="table-container" style="max-height:200px;overflow-y:auto;">
+                <table class="data-table">
+                  <thead><tr><th>Date</th><th>Health</th><th>Temp</th><th>RPM</th></tr></thead>
+                  <tbody>
+                    ${logs.slice(0, 5).map(l => `
+                      <tr>
+                        <td>${new Date(l.logged_at).toLocaleDateString()}</td>
+                        <td>${l.engine_health}%</td>
+                        <td>${l.temperature || 'N/A'}°C</td>
+                        <td>${l.rpm || 'N/A'}</td>
+                      </tr>
+                    `).join('')}
+                  </tbody>
+                </table>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      `;
+      document.getElementById('detailsModal').classList.add('active');
+    }
+
+    function closeDetailsModal() {
+      document.getElementById('detailsModal').classList.remove('active');
+    }
+
+    // close modal when clicking outside it
+    document.querySelectorAll('.modal').forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.classList.remove('active');
+        }
+      });
+    });
+
+    // listen for changes from other pages
+    window.addEventListener('storage', (e) => {
+      if (e.key === 'vesselUpdate') {
+        loadVessels();
+      }
+    });
+
+    // runs when page loads
+    document.addEventListener('DOMContentLoaded', () => {
+      currentUser = checkAuth();
+      if (!currentUser) return;
+
+      // set user info in sidebar
+      document.getElementById('userName').textContent = currentUser.name;
+      document.getElementById('userRole').textContent = currentUser.role.toUpperCase();
+      document.getElementById('userAvatar').textContent = currentUser.name.substring(0, 2).toUpperCase();
+      if (currentUser.role === 'admin') document.getElementById('adminLink').style.display = 'flex';
+
+      setupRoleUI();
+      loadVessels();
+    });
+  </script>
+</body>
+</html>
