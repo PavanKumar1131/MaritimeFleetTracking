@@ -1,134 +1,201 @@
-# ⚓ Maritime Fleet Tracking System
+# Maritime Fleet Tracking System
 
-A comprehensive real-time maritime fleet monitoring platform built with Node.js and vanilla JavaScript. Track ships and submarines, visualize sea routes, monitor weather conditions, and manage alerts for your entire fleet.
-
-![Node.js](https://img.shields.io/badge/Node.js-v16+-green)
-![MySQL](https://img.shields.io/badge/MySQL-8.0-blue)
-![Express](https://img.shields.io/badge/Express-5.x-lightgrey)
+A comprehensive real-time maritime fleet monitoring platform built with Node.js and vanilla JavaScript. Track ships and submarines, visualize sea routes, monitor weather conditions, and receive intelligent alerts for your entire fleet.
 
 
-## ✨ Features
+## Features
 
-### 🚢 Real-Time Vessel Tracking
-- Live vessel positions on interactive Leaflet.js map
+### Real-Time Vessel Tracking
+- Live vessel positions on interactive world map
 - Support for multiple vessel types (Cargo, Naval, Submarine, Tanker)
 - Location history trails and movement tracking
 - Speed, heading, and engine health monitoring
 
-### 🌊 Submarine Depth Monitoring
+### Submarine Depth Monitoring
 - Real-time depth and pressure tracking
 - Depth history visualization with charts
 - Pressure monitoring and safety alerts
+- Specialized submarine dashboard
 
-### 🗺️ Sea Route Visualization
-- Polyline routes displayed on interactive maps
+### Sea Route Visualization
+- Polyline routes displayed on Leaflet.js map
 - Color-coded routes based on risk level (Low/Medium/High)
 - Weather severity indicators along routes
 - Waypoint management system
 
-### 📊 Analytics & Reporting
+### Analytics & Reporting
 - Fleet composition breakdown charts
 - Engine health radar visualization
-- Fuel consumption and speed comparison graphs
-- Alert statistics and trends
+- Fuel consumption tracking
+- Speed comparison graphs
+- Route risk distribution analysis
 
-### 🌤️ Weather Integration
+### Weather Integration
 - Real-time weather data for vessel locations
+- Weather forecasts along planned routes
 - Storm warnings and visibility alerts
 - OpenWeatherMap API support (with mock fallback)
 
-### 🔐 Security & Access Control
+### Security & Access Control
 - Role-based access control (RBAC)
 - Three user roles: Admin, Operator, Viewer
 - JWT token-based authentication
 - bcrypt password hashing
 
-### 📁 Data Import/Export
+### Data Import/Export
 - CSV and JSON file uploads for vessels and routes
-- Downloadable templates and data export
+- Downloadable templates for proper formatting
+- Data export for backup and reporting
 
 
-## 🛠️ Tech Stack
+## Tech Stack
 
-| Frontend | Backend |
-|----------|---------|
-| HTML5, CSS3, JavaScript | Node.js + Express.js |
-| Leaflet.js (Maps) | MySQL Database |
-| Chart.js (Analytics) | JWT + bcrypt (Auth) |
-| Custom Dark Theme | multer (File uploads) |
+### Frontend
+- **HTML5** - Structure
+- **CSS3** - Styling with dark maritime theme
+- **JavaScript (Vanilla)** - Client-side logic
+- **Leaflet.js** - Interactive maps
+- **Chart.js** - Analytics visualization
+
+### Backend
+- **Node.js** - Runtime environment
+- **Express.js** - Web framework
+- **MySQL** - Relational database
+- **JWT** - Authentication
+- **bcrypt** - Password hashing
+- **multer** - File upload handling
+
+### Architecture
+- REST API architecture
+- MVC pattern structure
+- Role-based access control
+- 8 normalized database tables
 
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 maritime-fleet-tracking/
 ├── frontend/
 │   ├── assets/
-│   │   ├── css/main.css          # Dark maritime theme
-│   │   └── js/                   # Frontend modules
-│   ├── components/sidebar.html
-│   └── pages/                    # HTML pages
-│       ├── login.html
-│       ├── dashboard.html
-│       ├── fleet-map.html
-│       ├── vessels.html
-│       ├── routes.html
-│       ├── analytics.html
-│       ├── alerts.html
-│       └── admin-panel.html
+│   │   ├── css/
+│   │   │   └── main.css           # Dark maritime theme
+│   │   ├── images/
+│   │   └── js/
+│   │       ├── admin-dashboard.js # Admin functionality
+│   │       ├── admin-panel.js     # User management
+│   │       ├── analytics.js       # Charts and reports
+│   │       ├── auth.js            # Authentication
+│   │       ├── map.js             # Leaflet map logic
+│   │       ├── operator-dashboard.js
+│   │       ├── routes.js          # Route management
+│   │       ├── vessels.js         # Vessel management
+│   │       └── viewer-dashboard.js
+│   ├── components/
+│   │   └── sidebar.html           # Navigation sidebar
+│   └── pages/
+│       ├── login.html             # Authentication page
+│       ├── dashboard.html         # Main dashboard
+│       ├── fleet-map.html         # Interactive map
+│       ├── vessels.html           # Vessel management
+│       ├── routes.html            # Route planning
+│       ├── analytics.html         # Charts & reports
+│       ├── alerts.html            # Alert management
+│       └── admin-panel.html       # Admin settings
 │
 ├── backend/
-│   ├── server.js                 # Express entry point
-│   ├── config/db.js              # MySQL configuration
-│   ├── controllers/              # Business logic
-│   ├── middleware/               # Auth middleware
-│   ├── models/                   # Data models
-│   ├── routes/                   # API routes
-│   └── database/
-│       ├── init-db.js            # DB initialization
-│       └── schema.sql            # Database schema
+│   ├── server.js                  # Express server entry
+│   ├── config/
+│   │   └── db.js                  # MySQL configuration
+│   ├── controllers/
+│   │   ├── alertController.js     # Alert logic
+│   │   ├── authController.js      # Authentication
+│   │   ├── routeController.js     # Route management
+│   │   ├── trackingController.js  # Live tracking
+│   │   ├── uploadController.js    # File uploads
+│   │   ├── vesselController.js    # Vessel CRUD
+│   │   └── weatherController.js   # Weather API
+│   ├── database/
+│   │   ├── init-db.js             # DB initialization
+│   │   └── schema.sql             # Database schema
+│   ├── middleware/
+│   │   └── authMiddleware.js      # JWT verification
+│   ├── models/
+│   │   ├── routeModel.js
+│   │   ├── userModel.js
+│   │   └── vesselModel.js
+│   ├── routes/
+│   │   ├── alertRoutes.js
+│   │   ├── authRoutes.js
+│   │   ├── dashboardRoutes.js
+│   │   ├── routeRoutes.js
+│   │   ├── trackingRoutes.js
+│   │   ├── uploadRoutes.js
+│   │   ├── vesselRoutes.js
+│   │   └── weatherRoutes.js
+│   └── package.json
 │
 ├── Maritime-Fleet-API.postman_collection.json
 └── README.md
 ```
 
 
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
 - Node.js (v16 or higher)
 - MySQL (8.0 or higher)
-- npm
+- npm or yarn
 
 ### Installation
 
+1. **Clone the repository**
 ```bash
-# 1. Clone the repository
 git clone https://github.com/PavanKumar1131/Maritime-Fleet-Tracking.git
 cd Maritime-Fleet-Tracking
+```
 
-# 2. Install dependencies
+2. **Backend Setup**
+```bash
 cd backend
 npm install
 
-# 3. Configure environment
-cp .env.example .env
-# Edit .env with your database credentials
+# Create .env file
+# Add your MySQL credentials and JWT secret
+echo "DB_HOST=localhost" > .env
+echo "DB_USER=root" >> .env
+echo "DB_PASSWORD=your_password" >> .env
+echo "DB_NAME=maritime_fleet" >> .env
+echo "DB_PORT=3306" >> .env
+echo "JWT_SECRET=your_jwt_secret" >> .env
+echo "PORT=5000" >> .env
 
-# 4. Initialize database with demo data
+# Initialize database with demo data
 npm run init-db
 
-# 5. Start the server
 npm start
 ```
 
-### Access the Application
-- **Application:** http://localhost:5000
-- **Login Page:** http://localhost:5000/pages/login.html
-- **API Docs:** http://localhost:5000/api
+### Running the Application
+
+**Backend**
+```bash
+cd backend
+npm start
+# Server runs on http://localhost:5000
+```
+
+**Access Points**
+```
+Application: http://localhost:5000
+Login Page: http://localhost:5000/pages/login.html
+API Docs: http://localhost:5000/api
+```
 
 
-## 👥 Demo Credentials
+## Demo Credentials
+
+Default demo accounts are available for testing:
 
 | Role | Email | Password |
 |------|-------|----------|
@@ -137,112 +204,189 @@ npm start
 | Viewer | viewer@maritime.com | viewer123 |
 
 
-## 📡 API Endpoints
+## API Documentation
 
-### Authentication
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/auth/login` | User login |
-| POST | `/api/auth/register` | Register new user (Admin) |
-| GET | `/api/auth/users` | List all users (Admin) |
-| PUT | `/api/auth/users/:id` | Update user (Admin) |
-| DELETE | `/api/auth/users/:id` | Delete user (Admin) |
+### Authentication Endpoints
 
-### Vessels
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/vessels` | Get all vessels |
-| GET | `/api/vessels/:id` | Get vessel by ID |
-| GET | `/api/vessels/stats` | Get fleet statistics |
-| POST | `/api/vessels` | Create vessel (Admin) |
-| PUT | `/api/vessels/:id` | Update vessel (Admin) |
-| DELETE | `/api/vessels/:id` | Delete vessel (Admin) |
-| PATCH | `/api/vessels/:id/metrics` | Update metrics (Operator+) |
+**Login**
+```
+POST /api/auth/login
+Body: { email, password }
+Response: { success, token, user }
+```
 
-### Routes
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/routes` | Get all routes |
-| GET | `/api/routes/:id` | Get route by ID |
-| POST | `/api/routes` | Create route (Admin) |
-| PUT | `/api/routes/:id` | Update route (Admin) |
-| DELETE | `/api/routes/:id` | Delete route (Admin) |
+**Register User (Admin only)**
+```
+POST /api/auth/register
+Headers: Authorization: Bearer <token>
+Body: { name, email, password, role }
+```
 
-### Alerts & Weather
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/alerts` | Get all alerts |
-| GET | `/api/alerts/active` | Get active alerts |
-| PUT | `/api/alerts/:id/resolve` | Resolve alert |
-| GET | `/api/weather/vessel/:id` | Get vessel weather |
+**Get All Users (Admin only)**
+```
+GET /api/auth/users
+Headers: Authorization: Bearer <token>
+```
 
-### Live Tracking
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/tracking/live` | Real-time vessel positions |
-| GET | `/api/tracking/submarines` | Get all submarines |
-| GET | `/api/tracking/submarines/:id/depth` | Get depth history |
-| GET | `/api/tracking/history/:id` | Get location history |
+### Vessel Endpoints
 
-### File Upload/Export
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| POST | `/api/upload/vessels` | Upload vessels (CSV/JSON) |
-| POST | `/api/upload/routes` | Upload routes (CSV/JSON) |
-| GET | `/api/upload/export/vessels` | Export vessels |
-| GET | `/api/upload/export/routes` | Export routes |
+**Get All Vessels**
+```
+GET /api/vessels
+```
+
+**Get Vessel by ID**
+```
+GET /api/vessels/:id
+```
+
+**Get Fleet Statistics**
+```
+GET /api/vessels/stats
+```
+
+**Create Vessel (Admin only)**
+```
+POST /api/vessels
+Body: { name, type, latitude, longitude, speed, engine_health }
+```
+
+**Update Vessel (Admin only)**
+```
+PUT /api/vessels/:id
+Body: { name, type, status, engine_health }
+```
+
+**Update Vessel Metrics (Operator+)**
+```
+PATCH /api/vessels/:id/metrics
+Body: { engine_health, fuel_level, speed }
+```
+
+### Route Endpoints
+
+**Get All Routes**
+```
+GET /api/routes
+```
+
+**Get Route by ID**
+```
+GET /api/routes/:id
+```
+
+**Create Route (Admin only)**
+```
+POST /api/routes
+Body: { route_name, vessel_id, coordinates, risk_level, description }
+```
+
+### Alert Endpoints
+
+**Get Alerts**
+```
+GET /api/alerts
+```
+
+**Get Active Alerts**
+```
+GET /api/alerts/active
+```
+
+**Resolve Alert**
+```
+PUT /api/alerts/:id/resolve
+Headers: Authorization: Bearer <token>
+```
+
+### Weather Endpoints
+
+**Get Weather by Coordinates**
+```
+GET /api/weather/coords?lat=40.7128&lon=-74.0060
+```
+
+**Get Vessel Weather**
+```
+GET /api/weather/vessel/:id
+```
+
+### Live Tracking Endpoints
+
+**Get Live Vessel Positions**
+```
+GET /api/tracking/live
+```
+
+**Get All Submarines**
+```
+GET /api/tracking/submarines
+```
+
+**Get Submarine Depth History**
+```
+GET /api/tracking/submarines/:id/depth
+```
+
+### File Upload Endpoints
+
+**Upload Vessels (CSV/JSON)**
+```
+POST /api/upload/vessels
+Content-Type: multipart/form-data
+```
+
+**Export Vessels**
+```
+GET /api/upload/export/vessels
+```
 
 
-## 👤 User Roles & Permissions
+## User Roles & Permissions
 
-| Role | Permissions |
-|------|-------------|
-| **Admin** | Full system access - manage users, vessels, routes, view all analytics |
-| **Operator** | Update vessel metrics/locations, manage alerts, view analytics |
-| **Viewer** | Read-only access to dashboards, maps, and reports |
+### Admin
+- Full system access
+- User management
+- Vessel and route management
+- View all analytics and data
+
+### Operator
+- Vessel monitoring
+- Update metrics and locations
+- Alert management
+- Cannot modify system settings
+
+### Viewer
+- Read-only access
+- View dashboards and maps
+- View reports
+- Cannot modify or delete data
 
 
-## 🗄️ Database Schema
+## Database Schema
 
 | Table | Description |
 |-------|-------------|
-| `users` | User accounts with roles |
-| `vessels` | Ship and submarine information |
-| `vessel_locations` | Location history (lat/lng/speed) |
-| `routes` | Sea route definitions |
-| `route_waypoints` | Route coordinate points |
-| `engine_logs` | Engine health and fuel tracking |
-| `submarine_depth_logs` | Depth and pressure monitoring |
-| `alerts` | System alerts and warnings |
+| users | User accounts with roles |
+| vessels | Ship and submarine information |
+| vessel_locations | Location history (lat/lng/speed) |
+| routes | Sea route definitions |
+| route_waypoints | Route coordinate points |
+| engine_logs | Engine health and fuel tracking |
+| submarine_depth_logs | Depth and pressure monitoring |
+| alerts | System alerts and warnings |
 
 
-## 🔧 Environment Variables
+## Environment Variables
 
-```env
-PORT=5000
+### Backend (.env)
+```
 DB_HOST=localhost
 DB_USER=root
 DB_PASSWORD=your_password
 DB_NAME=maritime_fleet
 DB_PORT=3306
 JWT_SECRET=your_secure_secret_key
-WEATHER_API_KEY=your_openweathermap_key  # optional
+PORT=5000
+WEATHER_API_KEY=your_openweathermap_key
 ```
-
-
-## 🧪 Testing with Postman
-
-1. Import `Maritime-Fleet-API.postman_collection.json` into Postman
-2. Run the "Login (Admin)" request first
-3. Token is automatically saved to collection variables
-4. All authenticated requests use the saved token
-
-
-## 📸 Screenshots
-
-*Screenshots of the application:*
-- Login Page
-- Dashboard Overview
-- Fleet Map with vessel positions
-- Analytics Charts
-- Admin Panel
