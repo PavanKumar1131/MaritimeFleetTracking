@@ -235,16 +235,54 @@ exports.updateVesselMetrics = (req, res) => {
     });
 };
 
-// delete a vessel
+// delete a vessel and its associated data
 exports.deleteVessel = (req, res) => {
     const { id } = req.params;
     
-    db.query('DELETE FROM vessels WHERE vessel_id = ?', [id], (err, result) => {
+    // First check if vessel exists
+    db.query('SELECT vessel_id FROM vessels WHERE vessel_id = ?', [id], (err, results) => {
         if (err) return res.status(500).json({ error: err.message });
-        if (result.affectedRows === 0) {
+        if (results.length === 0) {
             return res.status(404).json({ error: 'Vessel not found' });
         }
-        res.json({ message: 'Vessel deleted successfully' });
+        
+        // Delete associated route waypoints first
+        db.query(`
+            DELETE rw FROM route_waypoints rw
+            INNER JOIN routes r ON rw.route_id = r.route_id
+            WHERE r.vessel_id = ?
+        `, [id], (err) => {
+            if (err) console.error('Error deleting route waypoints:', err);
+            
+            // Delete routes associated with this vessel
+            db.query('DELETE FROM routes WHERE vessel_id = ?', [id], (err) => {
+                if (err) console.error('Error deleting routes:', err);
+                
+                // Delete vessel locations
+                db.query('DELETE FROM vessel_locations WHERE vessel_id = ?', [id], (err) => {
+                    if (err) console.error('Error deleting vessel locations:', err);
+                    
+                    // Delete engine logs
+                    db.query('DELETE FROM engine_logs WHERE vessel_id = ?', [id], (err) => {
+                        if (err) console.error('Error deleting engine logs:', err);
+                        
+                        // Delete submarine depth logs if any
+                        db.query('DELETE FROM submarine_depth_logs WHERE vessel_id = ?', [id], (err) => {
+                            if (err) console.error('Error deleting depth logs:', err);
+                            
+                            // Finally delete the vessel
+                            db.query('DELETE FROM vessels WHERE vessel_id = ?', [id], (err, result) => {
+                                if (err) return res.status(500).json({ error: err.message });
+                                res.json({ 
+                                    message: 'Vessel and associated data deleted successfully',
+                                    deletedVesselId: parseInt(id)
+                                });
+                            });
+                        });
+                    });
+                });
+            });
+        });
     });
 };
 

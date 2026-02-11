@@ -24,7 +24,6 @@
         <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span><span>Dashboard</span></a>
         <a href="fleet-map.html" class="nav-item active"><span class="nav-icon">🗺️</span><span>Fleet Map</span></a>
         <a href="vessels.html" class="nav-item"><span class="nav-icon">🚢</span><span>Vessels</span></a>
-        <a href="routes.html" class="nav-item"><span class="nav-icon">🧭</span><span>Routes</span></a>
         <a href="analytics.html" class="nav-item"><span class="nav-icon">📈</span><span>Analytics</span></a>
         <a href="alerts.html" class="nav-item"><span class="nav-icon">🔔</span><span>Alerts</span></a>
         <!-- only show for admins -->
@@ -79,27 +78,62 @@
   </div>
 
   <script>
-    // api url
-    const API_URL = 'http://localhost:5000/api';
-    // store map and markers
-    let map, markers = [], routeLines = [];
+    // ============================================
+    // MARITIME FLEET MAP - Enhanced Version
+    // ============================================
     
-    // check if logged in
+    const API_URL = 'http://localhost:5000/api';
+    
+    // State Management
+    const state = {
+      map: null,
+      vessels: new Map(),       // Map of vessel ID -> vessel data
+      routes: new Map(),        // Map of route ID -> route data
+      markers: new Map(),       // Map of vessel ID -> marker
+      routeLines: new Map(),    // Map of route ID -> polyline
+      vesselRouteLines: new Map(), // Map of vessel ID -> array of route lines
+      isLoading: false,
+      lastUpdate: null
+    };
+    
+    // ============================================
+    // AUTHENTICATION
+    // ============================================
     function checkAuth() {
       const token = localStorage.getItem('token');
       const userStr = localStorage.getItem('user');
-      if (!token || !userStr) { window.location.href = 'login.html'; return null; }
-      try { return JSON.parse(userStr); } catch (e) { window.location.href = 'login.html'; return null; }
+      if (!token || !userStr) { 
+        window.location.href = 'login.html'; 
+        return null; 
+      }
+      try { 
+        return JSON.parse(userStr); 
+      } catch (e) { 
+        window.location.href = 'login.html'; 
+        return null; 
+      }
     }
     
-    function logout() { localStorage.clear(); window.location.href = 'login.html'; }
+    function logout() { 
+      localStorage.clear(); 
+      window.location.href = 'login.html'; 
+    }
     
-    // fetch with auth header
-    async function fetchAPI(url) {
+    async function fetchAPI(url, options = {}) {
       try {
         const token = localStorage.getItem('token');
-        const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
-        if (res.status === 401) { logout(); return null; }
+        const res = await fetch(url, { 
+          ...options,
+          headers: { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            ...options.headers 
+          } 
+        });
+        if (res.status === 401) { 
+          logout(); 
+          return null; 
+        }
         if (!res.ok) throw new Error('API error');
         return res.json();
       } catch (err) {
@@ -108,7 +142,9 @@
       }
     }
     
-    // get color for vessel type
+    // ============================================
+    // COLORS AND STYLING
+    // ============================================
     function getVesselColor(type) {
       const colors = { 
         Cargo: '#00d4ff', 
@@ -119,220 +155,557 @@
       return colors[type] || '#64748b';
     }
     
-    // get color for risk level
     function getRiskColor(risk) {
-      const colors = { low: '#00f5d4', medium: '#ffbe0b', high: '#ff6b6b' };
+      if (!risk) return '#64748b';
+      const colors = { 
+        low: '#00f5d4', 
+        medium: '#ffbe0b', 
+        high: '#ff6b6b',
+        Low: '#00f5d4', 
+        Medium: '#ffbe0b', 
+        High: '#ff6b6b'
+      };
       return colors[risk] || '#64748b';
     }
     
-    // set up the map
-    function initMap() {
-      // center on atlantic ocean, zoom level 3
-      map = L.map('map').setView([30, -40], 3);
-      // using dark theme tiles from carto
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
-        attribution: '© OpenStreetMap © CARTO'
-      }).addTo(map);
+    function getVesselIcon(type) {
+      const icons = { 
+        Cargo: '🚢', 
+        Naval: '⚓', 
+        Tanker: '🛢️', 
+        Submarine: '🌊' 
+      };
+      return icons[type] || '🚢';
     }
     
-    // load all the data onto the map
+    // ============================================
+    // SEA ROUTE GENERATION (Client-side fallback)
+    // ============================================
+    function generateLocalSeaRoute(startLat, startLng, endLat, endLng) {
+      const waypoints = [];
+      
+      // Calculate distance and direction
+      const latDiff = endLat - startLat;
+      const lngDiff = endLng - startLng;
+      const totalDistance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+      
+      // Number of intermediate points based on distance
+      const numPoints = Math.max(5, Math.min(20, Math.floor(totalDistance / 5)));
+      
+      for (let i = 0; i <= numPoints; i++) {
+        const t = i / numPoints;
+        
+        // Base interpolation
+        let lat = startLat + latDiff * t;
+        let lng = startLng + lngDiff * t;
+        
+        // Add curve to simulate realistic sea navigation
+        // Routes curve based on great circle approximation
+        const curveIntensity = Math.sin(t * Math.PI) * Math.min(8, totalDistance / 10);
+        
+        // Calculate perpendicular offset direction
+        const perpLat = -lngDiff / (totalDistance || 1);
+        const perpLng = latDiff / (totalDistance || 1);
+        
+        // Apply curve - prefer ocean routes
+        // Northern hemisphere: curve south for better shipping lanes
+        // Southern hemisphere: curve north
+        const hemisphereAdjust = lat > 0 ? -1 : 1;
+        
+        lat += perpLat * curveIntensity * 0.5;
+        lng += perpLng * curveIntensity * 0.3;
+        
+        // Avoid major land masses
+        // Africa (roughly)
+        if (lng > -20 && lng < 50 && lat > -35 && lat < 35) {
+          if (lat > 0) {
+            lat = Math.max(lat, 36); // Go north around Mediterranean
+          } else {
+            lat = Math.min(lat, -36); // Go south around Cape
+          }
+        }
+        
+        // South America
+        if (lng > -82 && lng < -34 && lat > -56 && lat < 12) {
+          if (lng < -60) {
+            // Pacific side - go further west
+            lng = Math.min(lng, -85);
+          } else {
+            // Atlantic side - go further east
+            lng = Math.max(lng, -30);
+          }
+        }
+        
+        // North America (east coast)
+        if (lng > -82 && lng < -60 && lat > 25 && lat < 50) {
+          lng = Math.max(lng, -55);
+        }
+        
+        waypoints.push({ lat, lng });
+      }
+      
+      return waypoints;
+    }
+    
+    async function generateSeaRouteWaypoints(startLat, startLng, endLat, endLng) {
+      // Try server-side generation first
+      try {
+        const result = await fetchAPI(`${API_URL}/routes/generate-sea-route`, {
+          method: 'POST',
+          body: JSON.stringify({ startLat, startLng, endLat, endLng })
+        });
+        
+        if (result && result.waypoints) {
+          return result.waypoints;
+        }
+      } catch (error) {
+        console.warn('Server sea route generation failed, using local fallback');
+      }
+      
+      // Fallback to client-side generation
+      return generateLocalSeaRoute(startLat, startLng, endLat, endLng);
+    }
+    
+    // ============================================
+    // MAP INITIALIZATION
+    // ============================================
+    function initMap() {
+      state.map = L.map('map').setView([30, -40], 3);
+      
+      // Dark theme tiles
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+        attribution: '© OpenStreetMap © CARTO',
+        maxZoom: 18
+      }).addTo(state.map);
+      
+      console.log('Map initialized');
+    }
+    
+    // ============================================
+    // MARKER MANAGEMENT
+    // ============================================
+    function createVesselMarker(vessel) {
+      const lat = parseFloat(vessel.latitude);
+      const lng = parseFloat(vessel.longitude);
+      
+      if (isNaN(lat) || isNaN(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+        console.warn(`Invalid coordinates for vessel ${vessel.name}`);
+        return null;
+      }
+      
+      const color = getVesselColor(vessel.type);
+      const icon = L.divIcon({
+        className: 'vessel-marker',
+        html: `<div style="
+          width: 36px;
+          height: 36px;
+          background: ${color};
+          border: 3px solid white;
+          border-radius: 50%;
+          box-shadow: 0 2px 10px rgba(0,0,0,0.5), 0 0 20px ${color}60;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 18px;
+          transition: transform 0.3s ease;
+        " onmouseover="this.style.transform='scale(1.2)'" onmouseout="this.style.transform='scale(1)'">${getVesselIcon(vessel.type)}</div>`,
+        iconSize: [36, 36],
+        iconAnchor: [18, 18]
+      });
+      
+      const marker = L.marker([lat, lng], { icon }).addTo(state.map);
+      
+      marker.bindPopup(`
+        <div style="min-width: 220px; font-family: Inter, sans-serif;">
+          <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 10px;">
+            <span style="font-size: 24px;">${getVesselIcon(vessel.type)}</span>
+            <div>
+              <strong style="font-size: 16px; color: #0a1628;">${vessel.name}</strong>
+              <div style="color: ${color}; font-weight: 600; font-size: 12px;">${vessel.type}</div>
+            </div>
+          </div>
+          <hr style="margin: 8px 0; border-color: #e0e0e0;">
+          <div style="font-size: 13px; line-height: 1.8; color: #374151;">
+            <div><strong>Speed:</strong> ${vessel.speed || 0} knots</div>
+            <div><strong>Engine:</strong> <span style="color: ${vessel.engine_health >= 80 ? '#10b981' : vessel.engine_health >= 50 ? '#f59e0b' : '#ef4444'}">${vessel.engine_health || 0}%</span></div>
+            <div><strong>Fuel:</strong> <span style="color: ${(vessel.fuel_level || 0) >= 50 ? '#10b981' : (vessel.fuel_level || 0) >= 20 ? '#f59e0b' : '#ef4444'}">${vessel.fuel_level || 0}%</span></div>
+            <div><strong>Status:</strong> <span style="color: ${vessel.status === 'Active' ? '#10b981' : '#f59e0b'}">${vessel.status}</span></div>
+            <div style="margin-top: 5px; font-size: 11px; color: #6b7280;">
+              📍 ${lat.toFixed(4)}, ${lng.toFixed(4)}
+            </div>
+          </div>
+        </div>
+      `);
+      
+      marker.vesselId = vessel.id;
+      return marker;
+    }
+    
+    function removeVesselMarker(vesselId) {
+      const marker = state.markers.get(vesselId);
+      if (marker) {
+        state.map.removeLayer(marker);
+        state.markers.delete(vesselId);
+        console.log(`Removed marker for vessel ${vesselId}`);
+      }
+    }
+    
+    // ============================================
+    // ROUTE LINE MANAGEMENT
+    // ============================================
+    function createRouteLine(route) {
+      if (!route.waypoints || route.waypoints.length < 2) {
+        return null;
+      }
+      
+      const latlngs = route.waypoints.map(wp => {
+        // Handle both {lat, lng} and [lat, lng] formats
+        if (Array.isArray(wp)) return wp;
+        return [wp.lat, wp.lng];
+      });
+      
+      const color = getRiskColor(route.risk_level);
+      
+      const polyline = L.polyline(latlngs, {
+        color: color,
+        weight: 3,
+        opacity: 0.8,
+        dashArray: '8, 6',
+        lineCap: 'round',
+        lineJoin: 'round'
+      }).addTo(state.map);
+      
+      polyline.bindPopup(`
+        <div style="min-width: 180px; font-family: Inter, sans-serif;">
+          <strong style="font-size: 14px; color: #0a1628;">🧭 ${route.route_name}</strong>
+          <hr style="margin: 8px 0; border-color: #e0e0e0;">
+          <div style="font-size: 13px; line-height: 1.6; color: #374151;">
+            <div><strong>Risk:</strong> <span style="color: ${color}">${route.risk_level || 'Unknown'}</span></div>
+            <div><strong>Status:</strong> ${route.status || 'Planned'}</div>
+            ${route.vessel_name ? `<div><strong>Vessel:</strong> ${route.vessel_name}</div>` : '<div style="color: #9ca3af;">No vessel assigned</div>'}
+            <div><strong>Waypoints:</strong> ${route.waypoints.length}</div>
+          </div>
+        </div>
+      `);
+      
+      polyline.routeId = route.id;
+      polyline.vesselId = route.vessel_id;
+      return polyline;
+    }
+    
+    function removeRouteLine(routeId) {
+      const line = state.routeLines.get(routeId);
+      if (line) {
+        state.map.removeLayer(line);
+        state.routeLines.delete(routeId);
+        console.log(`Removed route line ${routeId}`);
+      }
+    }
+    
+    function removeVesselRouteLines(vesselId) {
+      // Remove all routes associated with a vessel
+      state.routeLines.forEach((line, routeId) => {
+        if (line.vesselId === vesselId) {
+          state.map.removeLayer(line);
+          state.routeLines.delete(routeId);
+          console.log(`Removed route ${routeId} for vessel ${vesselId}`);
+        }
+      });
+    }
+    
+    function clearAllRouteLines() {
+      state.routeLines.forEach((line, routeId) => {
+        state.map.removeLayer(line);
+      });
+      state.routeLines.clear();
+      console.log('Cleared all route lines');
+    }
+    
+    function clearAllMarkers() {
+      state.markers.forEach((marker, vesselId) => {
+        state.map.removeLayer(marker);
+      });
+      state.markers.clear();
+      console.log('Cleared all markers');
+    }
+    
+    // ============================================
+    // DATA LOADING AND SYNCHRONIZATION
+    // ============================================
     async function loadMapData() {
+      if (state.isLoading) return;
+      state.isLoading = true;
+      
       console.log('Loading map data...');
       
       try {
-        // get vessels and routes at same time
         const [vessels, routes] = await Promise.all([
           fetchAPI(`${API_URL}/vessels`),
           fetchAPI(`${API_URL}/routes`)
         ]);
         
-        console.log('Vessels from API:', vessels);
-        console.log('Routes from API:', routes);
+        // Process vessels
+        const newVesselIds = new Set();
+        const currentVesselIds = new Set(state.vessels.keys());
         
-        // clear old markers and lines first
-        markers.forEach(m => map.removeLayer(m));
-        routeLines.forEach(l => map.removeLayer(l));
-        markers = [];
-        routeLines = [];
-        
-        // count how many vessels we actually show
-        let displayedVesselCount = 0;
-        
-        // draw the route lines first
-        if (routes && routes.length > 0) {
-          routes.forEach(route => {
-            const waypoints = route.waypoints || [];
-            // need at least 2 waypoints to draw a line
-            if (waypoints.length >= 2) {
-              const latlngs = waypoints.map(wp => [wp.lat, wp.lng]);
-              // dashed line for routes
-              const line = L.polyline(latlngs, {
-                color: getRiskColor(route.risk_level),
-                weight: 3,
-                opacity: 0.7,
-                dashArray: '10, 5'
-              }).addTo(map);
-              // popup when you click on route
-              line.bindPopup(`
-                <strong>${route.route_name}</strong><br>
-                Risk: ${route.risk_level}<br>
-                Weather: ${route.weather_severity || 'Clear'}<br>
-                ${route.vessel_name ? 'Vessel: ' + route.vessel_name : 'No vessel assigned'}
-              `);
-              routeLines.push(line);
+        if (vessels && vessels.length > 0) {
+          vessels.forEach(vessel => {
+            newVesselIds.add(vessel.id);
+            const existingVessel = state.vessels.get(vessel.id);
+            
+            if (!existingVessel) {
+              // New vessel - create marker
+              const marker = createVesselMarker(vessel);
+              if (marker) {
+                state.markers.set(vessel.id, marker);
+              }
+              state.vessels.set(vessel.id, vessel);
+              console.log(`Added new vessel: ${vessel.name}`);
+            } else if (hasVesselChanged(existingVessel, vessel)) {
+              // Vessel updated - update marker
+              removeVesselMarker(vessel.id);
+              const marker = createVesselMarker(vessel);
+              if (marker) {
+                state.markers.set(vessel.id, marker);
+              }
+              state.vessels.set(vessel.id, vessel);
+              console.log(`Updated vessel: ${vessel.name}`);
             }
           });
         }
         
-        // now add vessel markers
-        if (vessels && vessels.length > 0) {
-          vessels.forEach(v => {
-            const lat = parseFloat(v.latitude);
-            const lng = parseFloat(v.longitude);
-            
-            // make sure coordinates are valid
-            const isValidLat = !isNaN(lat) && lat >= -90 && lat <= 90;
-            const isValidLng = !isNaN(lng) && lng >= -180 && lng <= 180;
-            
-            if (isValidLat && isValidLng) {
-              displayedVesselCount++;
-              const color = getVesselColor(v.type);
-              // custom marker with ship emoji
-              const icon = L.divIcon({
-                className: 'vessel-marker',
-                html: `<div style="
-                  width: 32px;
-                  height: 32px;
-                  background: ${color};
-                  border: 3px solid white;
-                  border-radius: 50%;
-                  box-shadow: 0 2px 10px rgba(0,0,0,0.5), 0 0 15px ${color}50;
-                  display: flex;
-                  align-items: center;
-                  justify-content: center;
-                  font-size: 16px;
-                ">🚢</div>`,
-                iconSize: [32, 32],
-                iconAnchor: [16, 16]
-              });
-              
-              const marker = L.marker([lat, lng], { icon }).addTo(map);
-              // popup with vessel details
-              marker.bindPopup(`
-                <div style="min-width: 200px; font-family: Inter, sans-serif;">
-                  <strong style="font-size: 16px; color: #0a1628;">${v.name}</strong><br>
-                  <span style="color: ${color}; font-weight: 600;">${v.type}</span>
-                  <hr style="margin: 8px 0; border-color: #e0e0e0;">
-                  <div style="font-size: 13px; line-height: 1.6;">
-                    <strong>Speed:</strong> ${v.speed || 0} knots<br>
-                    <strong>Engine:</strong> ${v.engine_health || 0}%<br>
-                    <strong>Weather:</strong> ${v.weather_status || 'N/A'}<br>
-                    <strong>Status:</strong> <span style="color: ${v.status === 'Active' ? '#10b981' : '#f59e0b'}">${v.status}</span>
-                  </div>
-                </div>
-              `);
-              markers.push(marker);
-            } else {
-              // log invalid coords for debugging
-              console.warn(`Vessel "${v.name}" (ID: ${v.id}) has invalid coordinates: lat=${v.latitude}, lng=${v.longitude}`);
-            }
-          });
+        // Remove deleted vessels and their routes
+        currentVesselIds.forEach(vesselId => {
+          if (!newVesselIds.has(vesselId)) {
+            const vessel = state.vessels.get(vesselId);
+            console.log(`Removing deleted vessel: ${vessel?.name || vesselId}`);
+            removeVesselMarker(vesselId);
+            removeVesselRouteLines(vesselId);
+            state.vessels.delete(vesselId);
+          }
+        });
+        
+        // Process routes
+        const newRouteIds = new Set();
+        const currentRouteIds = new Set(state.routes.keys());
+        
+        // Clear and rebuild route lines for consistency
+        clearAllRouteLines();
+        state.routes.clear();
+        
+        // Only show routes if there are vessels AND the route is assigned to an existing vessel
+        if (routes && routes.length > 0 && vessels && vessels.length > 0) {
+          // Create a set of existing vessel IDs for quick lookup
+          const existingVesselIds = new Set(vessels.map(v => v.id));
           
-          // zoom map to fit all markers
-          if (markers.length > 0) {
-            const group = L.featureGroup(markers);
-            map.fitBounds(group.getBounds().pad(0.2));
+          for (const route of routes) {
+            newRouteIds.add(route.id);
+            
+            // Only show routes that:
+            // 1. Have valid waypoints (at least 2)
+            // 2. Are assigned to a vessel that still exists
+            const hasValidWaypoints = route.waypoints && route.waypoints.length >= 2;
+            const hasExistingVessel = route.vessel_id && existingVesselIds.has(route.vessel_id);
+            
+            if (hasValidWaypoints && hasExistingVessel) {
+              const line = createRouteLine(route);
+              if (line) {
+                state.routeLines.set(route.id, line);
+              }
+            }
+            state.routes.set(route.id, route);
           }
         }
         
-        // update count display
-        document.getElementById('vesselCount').textContent = displayedVesselCount;
+        // Update UI
+        updateFleetList(vessels || []);
+        document.getElementById('vesselCount').textContent = state.markers.size;
         
-        // update the list on the side
-        updateFleetList(vessels);
-        
-        console.log(`Map loaded: ${displayedVesselCount} vessels displayed (${vessels?.length || 0} total in database)`);
+        state.lastUpdate = new Date();
+        console.log(`Map data loaded: ${state.markers.size} vessels, ${state.routeLines.size} routes`);
         
       } catch (error) {
         console.error('Error loading map data:', error);
+      } finally {
+        state.isLoading = false;
       }
     }
     
-    // update the fleet list panel
+    function hasVesselChanged(oldVessel, newVessel) {
+      return oldVessel.latitude !== newVessel.latitude ||
+             oldVessel.longitude !== newVessel.longitude ||
+             oldVessel.status !== newVessel.status ||
+             oldVessel.engine_health !== newVessel.engine_health ||
+             oldVessel.fuel_level !== newVessel.fuel_level ||
+             oldVessel.speed !== newVessel.speed;
+    }
+    
+    // ============================================
+    // FLEET LIST UI
+    // ============================================
     function updateFleetList(vessels) {
       const listDiv = document.getElementById('fleetList');
       
-      if (vessels && vessels.length > 0) {
-        // build html for each vessel
-        listDiv.innerHTML = vessels.map(v => `
-          <div class="fleet-list-item" onclick="focusVessel(${v.latitude}, ${v.longitude})" 
-               style="padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 0.2s;"
-               onmouseover="this.style.background='rgba(0,212,255,0.05)'" 
-               onmouseout="this.style.background='transparent'">
+      if (!vessels || vessels.length === 0) {
+        listDiv.innerHTML = `
+          <div style="padding: 40px 20px; text-align: center;">
+            <div style="font-size: 48px; margin-bottom: 16px; opacity: 0.5;">🚢</div>
+            <p style="color: var(--text-secondary); margin-bottom: 8px;">No vessels found</p>
+            <p style="color: var(--text-tertiary); font-size: 12px;">Add vessels from the Vessels page</p>
+          </div>
+        `;
+        return;
+      }
+      
+      listDiv.innerHTML = vessels.map(v => {
+        const color = getVesselColor(v.type);
+        const isValid = !isNaN(parseFloat(v.latitude)) && !isNaN(parseFloat(v.longitude));
+        
+        return `
+          <div class="fleet-list-item" onclick="focusVessel(${v.id})" 
+               style="padding: 14px 16px; border-bottom: 1px solid var(--border); cursor: pointer; transition: all 0.2s;"
+               onmouseover="this.style.background='rgba(0,212,255,0.08)'; highlightVessel(${v.id}, true)" 
+               onmouseout="this.style.background='transparent'; highlightVessel(${v.id}, false)">
             <div style="display: flex; align-items: center; gap: 12px;">
-              <span style="
-                width: 14px;
-                height: 14px;
-                background: ${getVesselColor(v.type)};
+              <div style="
+                width: 36px;
+                height: 36px;
+                background: ${color};
                 border-radius: 50%;
-                box-shadow: 0 0 8px ${getVesselColor(v.type)}50;
-              "></span>
-              <div style="flex: 1;">
-                <strong style="font-size: 14px; color: var(--text-primary);">${v.name}</strong>
-                <div style="font-size: 12px; color: var(--text-secondary);">
-                  ${v.type} • ${v.speed || 0} kn • Engine: ${v.engine_health}%
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 18px;
+                box-shadow: 0 0 12px ${color}40;
+              ">${getVesselIcon(v.type)}</div>
+              <div style="flex: 1; min-width: 0;">
+                <strong style="font-size: 14px; color: var(--text-primary); display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">${v.name}</strong>
+                <div style="font-size: 12px; color: var(--text-secondary); margin-top: 2px;">
+                  ${v.type} • ${v.speed || 0} kn
+                </div>
+                <div style="font-size: 11px; color: var(--text-tertiary); margin-top: 2px;">
+                  🔧 ${v.engine_health}% • ⛽ ${v.fuel_level || 0}%
                 </div>
               </div>
-              <span class="badge ${v.status === 'Active' ? 'badge-success' : 'badge-warning'}" style="font-size: 10px;">
-                ${v.status}
-              </span>
+              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 4px;">
+                <span style="
+                  padding: 3px 8px;
+                  border-radius: 8px;
+                  background: ${v.status === 'Active' ? 'rgba(16, 185, 129, 0.15)' : 'rgba(245, 158, 11, 0.15)'};
+                  color: ${v.status === 'Active' ? '#10b981' : '#f59e0b'};
+                  font-size: 10px;
+                  font-weight: 600;
+                ">${v.status}</span>
+                ${!isValid ? '<span style="font-size: 10px; color: #ef4444;">⚠️ No GPS</span>' : ''}
+              </div>
             </div>
           </div>
-        `).join('');
-      } else {
-        listDiv.innerHTML = '<p style="padding: 30px; text-align: center; color: var(--text-secondary);">No vessels found</p>';
+        `;
+      }).join('');
+    }
+    
+    // ============================================
+    // USER INTERACTIONS
+    // ============================================
+    function focusVessel(vesselId) {
+      const vessel = state.vessels.get(vesselId);
+      if (!vessel) return;
+      
+      const lat = parseFloat(vessel.latitude);
+      const lng = parseFloat(vessel.longitude);
+      
+      if (!isNaN(lat) && !isNaN(lng)) {
+        state.map.setView([lat, lng], 8, { animate: true });
+        
+        // Open popup
+        const marker = state.markers.get(vesselId);
+        if (marker) {
+          marker.openPopup();
+        }
       }
     }
     
-    // zoom to vessel when clicked in list
-    function focusVessel(lat, lng) {
-      if (lat && lng && !isNaN(lat) && !isNaN(lng)) {
-        map.setView([lat, lng], 8);
+    function highlightVessel(vesselId, highlight) {
+      const marker = state.markers.get(vesselId);
+      if (!marker) return;
+      
+      const icon = marker.getElement();
+      if (icon) {
+        const innerDiv = icon.querySelector('div');
+        if (innerDiv) {
+          innerDiv.style.transform = highlight ? 'scale(1.3)' : 'scale(1)';
+          innerDiv.style.boxShadow = highlight 
+            ? '0 0 25px rgba(0, 212, 255, 0.8)' 
+            : '0 2px 10px rgba(0,0,0,0.5)';
+        }
       }
     }
     
-    // manual refresh
     function refreshMap() {
-      console.log('Refreshing map...');
+      console.log('Manual refresh triggered');
       loadMapData();
     }
     
-    // auto refresh every 30 seconds
-    setInterval(refreshMap, 30000);
-    
-    // listen for updates from other pages
-    window.addEventListener('storage', (e) => {
-      if (e.key === 'vesselUpdate' || e.key === 'routeUpdate') {
+    // ============================================
+    // REAL-TIME UPDATES
+    // ============================================
+    function setupRealtimeUpdates() {
+      // Listen for changes from other tabs/pages
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'vesselUpdate' || e.key === 'routeUpdate' || e.key === 'fleetUpdate') {
+          console.log('Storage event detected, refreshing map...');
+          setTimeout(loadMapData, 100);
+        }
+      });
+      
+      // Custom event listener for same-page updates
+      window.addEventListener('fleetDataChanged', () => {
+        console.log('Fleet data changed event, refreshing...');
         loadMapData();
-      }
-    });
+      });
+      
+      // Auto-refresh every 30 seconds
+      setInterval(() => {
+        console.log('Auto-refresh...');
+        loadMapData();
+      }, 30000);
+    }
     
-    // when page loads
+    // Broadcast update to other tabs
+    function broadcastUpdate(type) {
+      localStorage.setItem(type, Date.now().toString());
+      window.dispatchEvent(new Event('fleetDataChanged'));
+    }
+    
+    // ============================================
+    // INITIALIZATION
+    // ============================================
     document.addEventListener('DOMContentLoaded', () => {
       const user = checkAuth();
       if (!user) return;
       
-      // show user info
-      document.getElementById('userName').textContent = user.name;
+      // Show user info
+      document.getElementById('userName').textContent = user.name || user.email;
       document.getElementById('userRole').textContent = user.role.toUpperCase();
-      document.getElementById('userAvatar').textContent = user.name.substring(0, 2).toUpperCase();
-      // admin link only for admins
-      if (user.role === 'admin') document.getElementById('adminLink').style.display = 'flex';
+      document.getElementById('userAvatar').textContent = (user.name || user.email).substring(0, 2).toUpperCase();
       
-      // start the map
+      if (user.role === 'admin') {
+        document.getElementById('adminLink').style.display = 'flex';
+      }
+      
+      // Initialize map and load data
       initMap();
       loadMapData();
+      setupRealtimeUpdates();
+      
+      console.log('Fleet map initialized');
     });
+    
+    // Make functions globally accessible
+    window.focusVessel = focusVessel;
+    window.highlightVessel = highlightVessel;
+    window.refreshMap = refreshMap;
+    window.logout = logout;
   </script>
 </body>
 </html>

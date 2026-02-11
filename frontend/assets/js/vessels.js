@@ -175,6 +175,10 @@ document.getElementById('vesselForm').addEventListener('submit', async (e) => {
       throw new Error(error.message || 'Failed to save vessel');
     }
 
+    // Broadcast update to other pages (fleet map, etc.)
+    localStorage.setItem('vesselUpdate', Date.now().toString());
+    localStorage.setItem('fleetUpdate', Date.now().toString());
+
     alert(vesselId ? 'Vessel updated successfully' : 'Vessel added successfully');
     closeModal();
     loadVessels();
@@ -186,7 +190,7 @@ document.getElementById('vesselForm').addEventListener('submit', async (e) => {
 
 // deletes a vessel after confirming
 window.deleteVessel = async (id, name) => {
-  if (!confirm(`Are you sure you want to delete "${name}"? This action cannot be undone.`)) {
+  if (!confirm(`Are you sure you want to delete "${name}"?\n\nThis will also remove all associated routes and tracking data. This action cannot be undone.`)) {
     return;
   }
 
@@ -200,7 +204,12 @@ window.deleteVessel = async (id, name) => {
       throw new Error(error.message || 'Failed to delete vessel');
     }
 
-    alert('Vessel deleted successfully');
+    // Broadcast update to other pages (fleet map, routes, etc.)
+    localStorage.setItem('vesselUpdate', Date.now().toString());
+    localStorage.setItem('routeUpdate', Date.now().toString());
+    localStorage.setItem('fleetUpdate', Date.now().toString());
+
+    alert('Vessel and associated data deleted successfully');
     loadVessels();
   } catch (error) {
     console.error('Error deleting vessel:', error);

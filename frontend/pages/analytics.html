@@ -22,7 +22,6 @@
         <a href="dashboard.html" class="nav-item"><span class="nav-icon">📊</span><span>Dashboard</span></a>
         <a href="fleet-map.html" class="nav-item"><span class="nav-icon">🗺️</span><span>Fleet Map</span></a>
         <a href="vessels.html" class="nav-item"><span class="nav-icon">🚢</span><span>Vessels</span></a>
-        <a href="routes.html" class="nav-item"><span class="nav-icon">🧭</span><span>Routes</span></a>
         <a href="analytics.html" class="nav-item active"><span class="nav-icon">📈</span><span>Analytics</span></a>
         <a href="alerts.html" class="nav-item"><span class="nav-icon">🔔</span><span>Alerts</span></a>
         <a href="admin-panel.html" class="nav-item" id="adminLink" style="display:none;"><span class="nav-icon">👥</span><span>Admin Panel</span></a>
@@ -172,118 +171,172 @@
       document.getElementById('activeAlerts').textContent = activeAlertCount;
       
       // vessel type chart - doughnut
-      const typeCounts = {};
-      vessels.forEach(v => { typeCounts[v.type] = (typeCounts[v.type] || 0) + 1; });
-      
       // destroy old chart if exists
       if (charts.vesselType) charts.vesselType.destroy();
-      charts.vesselType = new Chart(document.getElementById('vesselTypeChart'), {
-        type: 'doughnut',
-        data: {
-          labels: Object.keys(typeCounts),
-          datasets: [{
-            data: Object.values(typeCounts),
-            backgroundColor: [chartColors.blue, chartColors.green, chartColors.yellow, chartColors.purple, chartColors.pink],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom', labels: { color: '#e2e8f0' } }
-          }
-        }
-      });
       
-      // status distribution - pie chart
-      const statusCounts = {};
-      vessels.forEach(v => { statusCounts[v.status] = (statusCounts[v.status] || 0) + 1; });
-      
-      if (charts.status) charts.status.destroy();
-      charts.status = new Chart(document.getElementById('statusChart'), {
-        type: 'pie',
-        data: {
-          labels: Object.keys(statusCounts),
-          datasets: [{
-            data: Object.values(statusCounts),
-            backgroundColor: [chartColors.green, chartColors.gray, chartColors.yellow],
-            borderWidth: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { position: 'bottom', labels: { color: '#e2e8f0' } }
-          }
-        }
-      });
-      
-      // engine health - horizontal bar
-      if (charts.engineHealth) charts.engineHealth.destroy();
-      charts.engineHealth = new Chart(document.getElementById('engineHealthChart'), {
-        type: 'bar',
-        data: {
-          labels: vessels.map(v => v.name),
-          datasets: [{
-            label: 'Engine Health %',
-            data: vessels.map(v => v.engine_health || 0),
-            // color based on health level
-            backgroundColor: vessels.map(v => {
-              const h = v.engine_health || 0;
-              return h >= 80 ? chartColors.green : h >= 50 ? chartColors.yellow : chartColors.red;
-            }),
-            borderRadius: 4
-          }]
-        },
-        options: {
-          indexAxis: 'y',
-          responsive: true,
-          maintainAspectRatio: false,
-          scales: {
-            x: { max: 100, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
-            y: { grid: { display: false }, ticks: { color: '#e2e8f0' } }
-          },
-          plugins: { legend: { display: false } }
-        }
-      });
-      
-      // route risk chart - bar
-      if (routes && routes.length > 0) {
-        const riskCounts = { low: 0, medium: 0, high: 0 };
-        routes.forEach(r => { riskCounts[r.risk_level] = (riskCounts[r.risk_level] || 0) + 1; });
+      if (vessels.length > 0) {
+        const typeCounts = {};
+        vessels.forEach(v => { typeCounts[v.type] = (typeCounts[v.type] || 0) + 1; });
         
-        if (charts.routeRisk) charts.routeRisk.destroy();
-        charts.routeRisk = new Chart(document.getElementById('routeRiskChart'), {
-          type: 'bar',
+        charts.vesselType = new Chart(document.getElementById('vesselTypeChart'), {
+          type: 'doughnut',
           data: {
-            labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+            labels: Object.keys(typeCounts),
             datasets: [{
-              label: 'Routes',
-              data: [riskCounts.low, riskCounts.medium, riskCounts.high],
-              backgroundColor: [chartColors.green, chartColors.yellow, chartColors.red],
-              borderRadius: 8
+              data: Object.values(typeCounts),
+              backgroundColor: [chartColors.blue, chartColors.green, chartColors.yellow, chartColors.purple, chartColors.pink],
+              borderWidth: 0
             }]
           },
           options: {
             responsive: true,
             maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { color: '#e2e8f0' } }
+            }
+          }
+        });
+      } else {
+        document.getElementById('vesselTypeChart').parentElement.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#64748b;">
+            <span style="font-size:48px;opacity:0.5;">🚢</span>
+            <p style="margin-top:12px;">No vessels to display</p>
+          </div>
+        `;
+      }
+      
+      // status distribution - pie chart
+      if (charts.status) charts.status.destroy();
+      
+      if (vessels.length > 0) {
+        const statusCounts = {};
+        vessels.forEach(v => { statusCounts[v.status] = (statusCounts[v.status] || 0) + 1; });
+        
+        charts.status = new Chart(document.getElementById('statusChart'), {
+          type: 'pie',
+          data: {
+            labels: Object.keys(statusCounts),
+            datasets: [{
+              data: Object.values(statusCounts),
+              backgroundColor: [chartColors.green, chartColors.gray, chartColors.yellow],
+              borderWidth: 0
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: { position: 'bottom', labels: { color: '#e2e8f0' } }
+            }
+          }
+        });
+      } else {
+        document.getElementById('statusChart').parentElement.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#64748b;">
+            <span style="font-size:48px;opacity:0.5;">📊</span>
+            <p style="margin-top:12px;">No status data available</p>
+          </div>
+        `;
+      }
+      
+      // engine health - horizontal bar
+      if (charts.engineHealth) charts.engineHealth.destroy();
+      
+      if (vessels.length > 0) {
+        charts.engineHealth = new Chart(document.getElementById('engineHealthChart'), {
+          type: 'bar',
+          data: {
+            labels: vessels.map(v => v.name),
+            datasets: [{
+              label: 'Engine Health %',
+              data: vessels.map(v => v.engine_health || 0),
+              // color based on health level
+              backgroundColor: vessels.map(v => {
+                const h = v.engine_health || 0;
+                return h >= 80 ? chartColors.green : h >= 50 ? chartColors.yellow : chartColors.red;
+              }),
+              borderRadius: 4
+            }]
+          },
+          options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
             scales: {
-              y: { beginAtZero: true, grid: { color: '#334155' }, ticks: { color: '#94a3b8', stepSize: 1 } },
-              x: { grid: { display: false }, ticks: { color: '#e2e8f0' } }
+              x: { max: 100, grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
+              y: { grid: { display: false }, ticks: { color: '#e2e8f0' } }
             },
             plugins: { legend: { display: false } }
           }
         });
+      } else {
+        document.getElementById('engineHealthChart').parentElement.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#64748b;">
+            <span style="font-size:48px;opacity:0.5;">🔧</span>
+            <p style="margin-top:12px;">No engine data available</p>
+          </div>
+        `;
+      }
+      
+      // route risk chart - only show if there are vessels
+      if (charts.routeRisk) charts.routeRisk.destroy();
+      
+      if (vessels && vessels.length > 0 && routes && routes.length > 0) {
+        // Only count routes that are assigned to existing vessels
+        const vesselIds = new Set(vessels.map(v => v.id));
+        const assignedRoutes = routes.filter(r => r.vessel_id && vesselIds.has(r.vessel_id));
+        
+        if (assignedRoutes.length > 0) {
+          const riskCounts = { low: 0, medium: 0, high: 0 };
+          assignedRoutes.forEach(r => { riskCounts[r.risk_level] = (riskCounts[r.risk_level] || 0) + 1; });
+          
+          charts.routeRisk = new Chart(document.getElementById('routeRiskChart'), {
+            type: 'bar',
+            data: {
+              labels: ['Low Risk', 'Medium Risk', 'High Risk'],
+              datasets: [{
+                label: 'Routes',
+                data: [riskCounts.low, riskCounts.medium, riskCounts.high],
+                backgroundColor: [chartColors.green, chartColors.yellow, chartColors.red],
+                borderRadius: 8
+              }]
+            },
+            options: {
+              responsive: true,
+              maintainAspectRatio: false,
+              scales: {
+                y: { beginAtZero: true, grid: { color: '#334155' }, ticks: { color: '#94a3b8', stepSize: 1 } },
+                x: { grid: { display: false }, ticks: { color: '#e2e8f0' } }
+              },
+              plugins: { legend: { display: false } }
+            }
+          });
+        } else {
+          // Show "no assigned routes" message
+          document.getElementById('routeRiskChart').parentElement.innerHTML = `
+            <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#64748b;">
+              <span style="font-size:48px;opacity:0.5;">🧭</span>
+              <p style="margin-top:12px;">No routes assigned to vessels</p>
+            </div>
+          `;
+        }
+      } else {
+        // Show "no data" message when no vessels
+        document.getElementById('routeRiskChart').parentElement.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#64748b;">
+            <span style="font-size:48px;opacity:0.5;">📊</span>
+            <p style="margin-top:12px;">No vessels to analyze</p>
+          </div>
+        `;
       }
       
       // alert types chart - polar area (looks cool)
+      if (charts.alertTypes) charts.alertTypes.destroy();
+      
       if (alerts && alerts.length > 0) {
         const alertTypes = {};
         alerts.forEach(a => { alertTypes[a.alert_type] = (alertTypes[a.alert_type] || 0) + 1; });
         
-        if (charts.alertTypes) charts.alertTypes.destroy();
         charts.alertTypes = new Chart(document.getElementById('alertTypesChart'), {
           type: 'polarArea',
           data: {
@@ -311,6 +364,13 @@
             }
           }
         });
+      } else {
+        document.getElementById('alertTypesChart').parentElement.innerHTML = `
+          <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:#64748b;">
+            <span style="font-size:48px;opacity:0.5;">🔔</span>
+            <p style="margin-top:12px;">No alerts recorded</p>
+          </div>
+        `;
       }
       
       // performance summary section
