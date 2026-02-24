@@ -47,6 +47,18 @@ A comprehensive real-time maritime fleet monitoring platform built with Node.js 
 - Downloadable templates for proper formatting
 - Data export for backup and reporting
 
+### Vessel Movement Simulation
+- Automatic vessel movement along predefined route waypoints
+- Real-time position updates every 3 seconds on the map
+- Speed-based movement calculation using nautical miles
+- Vessels automatically dock when reaching final waypoint:
+  - Speed set to 0 knots
+  - Status updated to "Docked"
+  - Marker remains visible at destination
+  - Route marked as completed
+- Simulation control via API (start, stop, reactivate)
+- Auto-start on server startup for active vessels
+
 
 ## Tech Stack
 
@@ -70,6 +82,8 @@ A comprehensive real-time maritime fleet monitoring platform built with Node.js 
 - MVC pattern structure
 - Role-based access control
 - 8 normalized database tables
+- Real-time vessel simulation service with auto-start
+- Live frontend polling for position updates
 
 
 ## Project Structure
@@ -111,6 +125,7 @@ maritime-fleet-tracking/
 │   │   ├── alertController.js     # Alert logic
 │   │   ├── authController.js      # Authentication
 │   │   ├── routeController.js     # Route management
+│   │   ├── simulationController.js # Vessel simulation API
 │   │   ├── trackingController.js  # Live tracking
 │   │   ├── uploadController.js    # File uploads
 │   │   ├── vesselController.js    # Vessel CRUD
@@ -129,10 +144,13 @@ maritime-fleet-tracking/
 │   │   ├── authRoutes.js
 │   │   ├── dashboardRoutes.js
 │   │   ├── routeRoutes.js
+│   │   ├── simulationRoutes.js    # Simulation control API
 │   │   ├── trackingRoutes.js
 │   │   ├── uploadRoutes.js
 │   │   ├── vesselRoutes.js
 │   │   └── weatherRoutes.js
+│   ├── services/
+│   │   └── vesselSimulationService.js # Movement simulation engine
 │   └── package.json
 │
 ├── Maritime-Fleet-API.postman_collection.json
@@ -328,6 +346,54 @@ GET /api/tracking/submarines
 GET /api/tracking/submarines/:id/depth
 ```
 
+### Vessel Simulation Endpoints
+
+**Get All Simulation Status**
+```
+GET /api/simulation/status
+Headers: Authorization: Bearer <token>
+Response: { activeCount, simulations: [...] }
+```
+
+**Get Specific Vessel Simulation Status**
+```
+GET /api/simulation/status/:vesselId
+Headers: Authorization: Bearer <token>
+Response: { running, vesselId, currentWaypointIndex, totalWaypoints, progress, isDocked }
+```
+
+**Start Vessel Simulation (Operator/Admin)**
+```
+POST /api/simulation/start/:vesselId
+Headers: Authorization: Bearer <token>
+Body: { speed?, intervalMs? }
+Response: { success, message, waypointCount, startingIndex }
+```
+
+**Start All Simulations (Admin only)**
+```
+POST /api/simulation/start-all
+Headers: Authorization: Bearer <token>
+```
+
+**Stop Vessel Simulation (Operator/Admin)**
+```
+POST /api/simulation/stop/:vesselId
+Headers: Authorization: Bearer <token>
+```
+
+**Stop All Simulations (Admin only)**
+```
+POST /api/simulation/stop-all
+Headers: Authorization: Bearer <token>
+```
+
+**Reactivate Docked Vessel (Admin only)**
+```
+POST /api/simulation/reactivate/:vesselId
+Headers: Authorization: Bearer <token>
+```
+
 ### File Upload Endpoints
 
 **Upload Vessels (CSV/JSON)**
@@ -368,10 +434,10 @@ GET /api/upload/export/vessels
 | Table | Description |
 |-------|-------------|
 | users | User accounts with roles |
-| vessels | Ship and submarine information |
-| vessel_locations | Location history (lat/lng/speed) |
-| routes | Sea route definitions |
-| route_waypoints | Route coordinate points |
+| vessels | Ship and submarine information (status: Active/Docked/Maintenance) |
+| vessel_locations | Location history (lat/lng/speed) - updated by simulation |
+| routes | Sea route definitions (status: planned/active/completed) |
+| route_waypoints | Route coordinate points - used for vessel movement simulation |
 | engine_logs | Engine health and fuel tracking |
 | submarine_depth_logs | Depth and pressure monitoring |
 | alerts | System alerts and warnings |

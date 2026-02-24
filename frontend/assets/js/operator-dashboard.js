@@ -41,13 +41,17 @@ async function loadDashboardData() {
     tbody.innerHTML = vessels.map(vessel => {
       const engineColor = vessel.engine_health >= 80 ? '#10b981' : vessel.engine_health >= 50 ? '#f59e0b' : '#ef4444';
       const fuelColor = (vessel.fuel_level || 0) >= 50 ? '#10b981' : (vessel.fuel_level || 0) >= 20 ? '#f59e0b' : '#ef4444';
+      const isDocked = vessel.status === 'Docked';
+      const displaySpeed = isDocked ? 0 : (vessel.speed || 0);
+      const statusColor = vessel.status === 'Active' ? '#10b981' : vessel.status === 'Docked' ? '#60a5fa' : '#f59e0b';
+      const statusBg = vessel.status === 'Active' ? 'rgba(16, 185, 129, 0.15)' : vessel.status === 'Docked' ? 'rgba(96, 165, 250, 0.15)' : 'rgba(245, 158, 11, 0.15)';
 
       return `
         <tr>
           <td>${vessel.id}</td>
           <td><strong>${vessel.name}</strong></td>
           <td><span class="badge badge-${vessel.type.toLowerCase()}">${vessel.type}</span></td>
-          <td>${vessel.speed || 0} kn</td>
+          <td>${displaySpeed} kn</td>
           <td>
             <div class="progress-bar">
               <div class="progress-fill" style="width: ${vessel.engine_health}%; background: ${engineColor};"></div>
@@ -59,6 +63,11 @@ async function loadDashboardData() {
               <div class="progress-fill" style="width: ${vessel.fuel_level || 0}%; background: ${fuelColor};"></div>
             </div>
             <span style="font-size: 11px; color: var(--text-secondary);">${vessel.fuel_level || 0}%</span>
+          </td>
+          <td>
+            <span style="padding: 4px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; background: ${statusBg}; color: ${statusColor};">
+              ${vessel.status}
+            </span>
           </td>
         </tr>
       `;

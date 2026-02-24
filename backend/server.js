@@ -14,6 +14,7 @@ const alertRoutes = require('./routes/alertRoutes');
 const weatherRoutes = require('./routes/weatherRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
 const trackingRoutes = require('./routes/trackingRoutes');
+const simulationRoutes = require('./routes/simulationRoutes');
 
 const app = express();
 
@@ -33,6 +34,7 @@ app.use('/api/alerts', alertRoutes);
 app.use('/api/weather', weatherRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/tracking', trackingRoutes);
+app.use('/api/simulation', simulationRoutes);
 
 // health check endpoint for deployment
 app.get('/api/health', (req, res) => {
@@ -56,7 +58,8 @@ app.get('/api', (req, res) => {
             alerts: '/api/alerts - Alert system',
             weather: '/api/weather - Weather data',
             upload: '/api/upload - File uploads (CSV/JSON)',
-            tracking: '/api/tracking - Live tracking & submarines'
+            tracking: '/api/tracking - Live tracking & submarines',
+            simulation: '/api/simulation - Vessel movement simulation'
         }
     });
 });
@@ -79,11 +82,50 @@ process.on('unhandledRejection', (err) => {
 // get port from environment or default to 5000
 const PORT = process.env.PORT || 5000;
 
+// Import simulation service for auto-start
+const simulationService = require('./services/vesselSimulationService');
+const db = require('./config/db');
+
+// Auto-start vessel simulations after server starts
+function autoStartSimulations() {
+    const query = `
+        SELECT DISTINCT v.vessel_id, v.name
+        FROM vessels v
+        INNER JOIN routes r ON v.vessel_id = r.vessel_id
+        WHERE v.status = 'Active' AND r.status = 'active'
+    `;
+    
+    db.query(query, async (err, results) => {
+        if (err) {
+            console.error('❌ Error fetching vessels for simulation:', err.message);
+            return;
+        }
+        
+        let started = 0;
+        for (const vessel of results) {
+            try {
+                const result = await simulationService.startSimulation(vessel.vessel_id, {
+                    speed: 12,        // 12 knots - moderate speed
+                    intervalMs: 3000  // Update every 3 seconds
+                });
+                if (result.success) started++;
+            } catch (error) {
+                // Silent fail
+            }
+        }
+        
+        console.log(`🚀 ${started} vessel simulations running`);
+    });
+}
+
 // start the server
 app.listen(PORT, () => {
     console.log('🚢 Maritime Fleet Tracking System');
     console.log(`📡 Server running on port ${PORT}`);
     console.log(`📁 Frontend served at http://localhost:${PORT}`);
     console.log(`🔐 Login at http://localhost:${PORT}/pages/login.html`);
+    
+    // Start simulations after a short delay to ensure DB connection is ready
+    setTimeout(autoStartSimulations, 2000);
     console.log(`📋 API docs at http://localhost:${PORT}/api`);
 });

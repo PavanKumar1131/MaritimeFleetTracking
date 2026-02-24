@@ -7,6 +7,8 @@ let vesselsData = [];
 let routesData = [];
 let markerLayer;
 let routeLayer;
+let liveUpdateInterval = null;
+const LIVE_UPDATE_INTERVAL_MS = 3000; // Update every 3 seconds
 
 // Initialize
 window.addEventListener('DOMContentLoaded', async () => {
@@ -24,8 +26,69 @@ window.addEventListener('DOMContentLoaded', async () => {
   initializeMap();
   await loadMapData();
   
+  // Start live position updates
+  startLiveUpdates();
+  
   document.getElementById('logoutBtn').addEventListener('click', logout);
 });
+
+// Start polling for live vessel position updates
+function startLiveUpdates() {
+  if (liveUpdateInterval) {
+    clearInterval(liveUpdateInterval);
+  }
+  
+  liveUpdateInterval = setInterval(async () => {
+    await updateVesselPositions();
+  }, LIVE_UPDATE_INTERVAL_MS);
+  
+  console.log('🔴 Live tracking started - updating every', LIVE_UPDATE_INTERVAL_MS / 1000, 'seconds');
+}
+
+// Fetch latest vessel positions and update map
+async function updateVesselPositions() {
+  try {
+    const res = await fetchWithAuth(`${API_URL}/vessels`);
+    if (!res.ok) return;
+    
+    const newData = await res.json();
+    
+    // Check for position changes
+    let hasChanges = false;
+    newData.forEach(newVessel => {
+      const oldVessel = vesselsData.find(v => v.id === newVessel.id);
+      if (oldVessel) {
+        if (oldVessel.latitude !== newVessel.latitude || 
+            oldVessel.longitude !== newVessel.longitude ||
+            oldVessel.status !== newVessel.status) {
+          hasChanges = true;
+        }
+      }
+    });
+    
+    vesselsData = newData;
+    
+    // Only re-render if there are changes
+    if (hasChanges) {
+      renderVesselsOnMap();
+      renderFleetList();
+    }
+  } catch (error) {
+    console.error('Error updating vessel positions:', error);
+  }
+}
+
+// Stop live updates (call when leaving page)
+function stopLiveUpdates() {
+  if (liveUpdateInterval) {
+    clearInterval(liveUpdateInterval);
+    liveUpdateInterval = null;
+    console.log('⏹️ Live tracking stopped');
+  }
+}
+
+// Clean up on page unload
+window.addEventListener('beforeunload', stopLiveUpdates);
 
 function initializeMap() {
   // Initialize Leaflet map
@@ -67,9 +130,18 @@ function renderVesselsOnMap() {
   markerLayer.clearLayers();
 
   vesselsData.forEach(vessel => {
+    // Skip vessels with invalid coordinates
+    if (vessel.latitude == null || vessel.longitude == null ||
+        isNaN(vessel.latitude) || isNaN(vessel.longitude)) {
+      console.warn(`Skipping vessel ${vessel.name} - invalid coordinates`);
+      return;
+    }
+
     const color = getVesselColor(vessel.type);
+    const isDocked = vessel.status === 'Docked';
+    const displaySpeed = isDocked ? 0 : (vessel.speed || 0);
     
-    // Create custom icon
+    // Create custom icon - docked vessels have reduced opacity
     const icon = L.divIcon({
       className: 'vessel-marker',
       html: `<div style="
@@ -77,12 +149,13 @@ function renderVesselsOnMap() {
         width: 30px;
         height: 30px;
         border-radius: 50%;
-        border: 3px solid white;
+        border: 3px solid ${isDocked ? '#60a5fa' : 'white'};
         box-shadow: 0 2px 8px rgba(0,0,0,0.3);
         display: flex;
         align-items: center;
         justify-content: center;
         font-size: 16px;
+        ${isDocked ? 'opacity: 0.8;' : ''}
       ">${getVesselIcon(vessel.type)}</div>`,
       iconSize: [30, 30],
       iconAnchor: [15, 15]
@@ -93,10 +166,15 @@ function renderVesselsOnMap() {
         <div style="color: #1e293b; min-width: 200px;">
           <h3 style="margin: 0 0 8px 0; color: #0ea5e9;">${vessel.name}</h3>
           <p style="margin: 4px 0;"><strong>Type:</strong> ${vessel.type}</p>
-          <p style="margin: 4px 0;"><strong>Speed:</strong> ${vessel.speed || 0} kn</p>
-          <p style="margin: 4px 0;"><strong>Status:</strong> ${vessel.status}</p>
+          <p style="margin: 4px 0;"><strong>Speed:</strong> ${displaySpeed} kn</p>
+          <p style="margin: 4px 0;"><strong>Status:</strong> 
+            <span style="color: ${getStatusColor(vessel.status)}; font-weight: 600;">
+              ${vessel.status}
+            </span>
+          </p>
           <p style="margin: 4px 0;"><strong>Engine Health:</strong> ${vessel.engine_health}%</p>
           <p style="margin: 4px 0;"><strong>Fuel:</strong> ${vessel.fuel_level}%</p>
+          ${isDocked ? '<p style="margin: 8px 0 0 0; font-size: 11px; color: #60a5fa;">⚓ Vessel is docked</p>' : ''}
         </div>
       `)
       .addTo(markerLayer);
@@ -153,24 +231,46 @@ function renderFleetList() {
           align-items: center;
           justify-content: center;
           font-size: 20px;
+          ${vessel.status === 'Docked' ? 'opacity: 0.7;' : ''}
         ">${getVesselIcon(vessel.type)}</div>
         <div style="flex: 1;">
           <h4 style="margin: 0; font-size: 14px;">${vessel.name}</h4>
           <p style="margin: 4px 0 0 0; font-size: 12px; color: var(--text-secondary);">
-            ${vessel.type} • ${vessel.speed || 0} kn
+            ${vessel.type} • ${vessel.status === 'Docked' ? '0' : (vessel.speed || 0)} kn
           </p>
         </div>
         <div style="
           padding: 4px 8px;
           border-radius: 4px;
-          background: ${vessel.status === 'Active' ? '#10b98120' : '#f59e0b20'};
-          color: ${vessel.status === 'Active' ? '#10b981' : '#f59e0b'};
+          background: ${getStatusBackground(vessel.status)};
+          color: ${getStatusColor(vessel.status)};
           font-size: 11px;
           font-weight: 600;
         ">${vessel.status}</div>
       </div>
     </div>
   `).join('');
+}
+
+// Get status badge background color
+function getStatusBackground(status) {
+  const colors = {
+    'Active': '#10b98120',
+    'Docked': '#60a5fa20',
+    'Maintenance': '#f59e0b20'
+  };
+  return colors[status] || '#64748b20';
+}
+
+// Get status text color
+function getStatusColor(status) {
+  const colors = {
+    'Active': '#10b981',
+    'Docked': '#60a5fa',
+    'Maintenance': '#f59e0b'
+  };
+  return colors[status] || '#64748b';
+}
 }
 
 window.focusVessel = (id) => {

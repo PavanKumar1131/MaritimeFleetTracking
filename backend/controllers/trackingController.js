@@ -15,7 +15,7 @@ exports.getLiveTracking = (req, res) => {
             v.weather_status,
             vl.latitude,
             vl.longitude,
-            vl.speed,
+            CASE WHEN v.status = 'Docked' THEN 0 ELSE vl.speed END as speed,
             vl.direction as heading,
             vl.timestamp as last_update,
             COALESCE(sdl.depth, 0) as depth,
@@ -35,7 +35,7 @@ exports.getLiveTracking = (req, res) => {
                 FROM submarine_depth_logs GROUP BY vessel_id
             ) sdl2 ON sdl1.vessel_id = sdl2.vessel_id AND sdl1.timestamp = sdl2.max_ts
         ) sdl ON v.vessel_id = sdl.vessel_id
-        WHERE v.status = 'Active'
+        WHERE v.status IN ('Active', 'Docked')
         ORDER BY v.vessel_id
     `;
     
@@ -49,6 +49,7 @@ exports.getLiveTracking = (req, res) => {
             vessels: results.map(v => ({
                 ...v,
                 is_submarine: v.type === 'Submarine',
+                is_docked: v.status === 'Docked',
                 position: {
                     lat: v.latitude,
                     lng: v.longitude
